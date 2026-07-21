@@ -18,6 +18,7 @@ run_if_available() {
 printf 'captured_utc='
 date -u '+%Y-%m-%dT%H:%M:%SZ'
 printf 'repository=RayMMA\n'
+printf 'publication_note=Inspect this output for private paths and filenames before sharing.\n'
 printf 'commit='
 git -C "$ROOT" rev-parse HEAD 2>/dev/null || printf 'uncommitted-export\n'
 printf 'describe='

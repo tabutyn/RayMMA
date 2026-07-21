@@ -1,13 +1,18 @@
-# RTX 3050 Ti Grid spot check
+# Provisional RTX 3050 Ti Grid matched-packet spot check
 
-This is the first raw-sample bundle produced by the hardened RayMMA harness.
-It uses only the procedural, redistributable Grid scene. It is a single-run
-release-candidate spot check, not a general GPU-performance claim.
+This is an internally intact raw-sample bundle from a pre-public RayMMA
+development tree. It uses only the procedural, redistributable Grid scene. It
+is not current release evidence and not a general GPU-performance claim.
+
+The comparison is the `validated` WMMA-filter-plus-FP32-Möller hybrid against
+the matched 16-ray CUDA diagnostic. It contains no independent-ray CUDA32
+timing, selective-leaf result, secondary rays, current row normalization, or
+`uvt-depthsorted`/`e0e1e2` result.
 
 ## Source and command
 
-- Source identity: pre-public development tree; rerun from the final public
-  release commit before treating this as archival publication evidence.
+- Source identity: pre-public development tree, identified by the source hash
+  below and retained only as historical context.
 - `src/research_benchmark.cu` SHA-256:
   `d2abd50e9d02346d54a97984e24cd882f27c56a57b10f327740a7405d90f6b22`
 - Configuration: Release, CUDA architecture 86
@@ -20,23 +25,24 @@ cmake --build --preset core --parallel
   --raw-csv raw.csv
 ```
 
-## Result
+## Provisional result
 
 Median integrated trace-kernel time, 256x144, nine samples:
 
-| Ray order | Matched CUDA | Tensor | Speedup |
+| Ray order | Matched CUDA-packet16 diagnostic | Validated hybrid | packet16 / hybrid |
 |---|---:|---:|---:|
 | coherent | 1.3763 ms | 1.4326 ms | 0.961x |
 | packet-shuffled | 2.5702 ms | 2.4546 ms | 1.047x |
 
-Both orders passed full-image Tensor/CUDA comparison, strict 256-ray
-brute-force sampling, primitive agreement, depth tolerance, numerical fallback
-reporting, and packet-leaf overflow checks.
+Both orders passed the checks implemented by that development revision:
+full-image Tensor/CUDA comparison, strict 256-ray brute-force sampling,
+primitive agreement, depth tolerance, numerical fallback reporting, and
+packet-leaf overflow checks.
 
-The result is deliberately modest: Tensor lost for coherent rays and won by
-4.7% for packet-shuffled primary rays. The separated Tensor leaf kernel was
-slower in both orders. This does not establish an advantage for production
-rays or production tracing systems.
+The result is deliberately modest: the validated hybrid lost for coherent
+rays and reported a `1.047x` ratio for packet-shuffled primary rays. The
+separated Tensor leaf kernel was slower in both orders. This does not establish
+an advantage over CUDA32, production rays, or production tracing systems.
 
 ## Files
 

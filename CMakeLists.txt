@@ -14,7 +14,7 @@ include(CTest)
 option(RAYMMA_BUILD_BENCHMARK
     "Build the standalone wide-BVH research benchmark" ON)
 option(RAYMMA_ENABLE_EXTERNAL_SCENES
-    "Enable user-supplied Checker and standard benchmark scenes" OFF)
+    "Enable the CC0 open model and separately licensed benchmark scenes" OFF)
 option(RAYMMA_ENABLE_TINYBVH
     "Enable the optional TinyBVH SAH/SBVH production builders" OFF)
 option(RAYMMA_BUILD_VIEWER
@@ -30,8 +30,8 @@ if(RAYMMA_ENABLE_TINYBVH)
         REQUIRED)
 endif()
 
-set(RAYMMA_CHECKER_ASSET_DIR "" CACHE PATH
-    "Directory containing user-supplied Low1.glb, Mid1.glb, and High1.glb")
+set(RAYMMA_OPEN_MODEL_ASSET_DIR "" CACHE PATH
+    "Directory containing the fetched CC0 Coastal Cliff 01 glTF asset")
 
 foreach(scene SIBENIK SPONZA SANMIGUEL)
     string(TOLOWER "${scene}" scene_lower)
@@ -39,58 +39,56 @@ foreach(scene SIBENIK SPONZA SANMIGUEL)
         "Path to the separately licensed ${scene_lower}.obj benchmark scene")
 endforeach()
 
-set(CHECKER_CACHE_DIR "${CMAKE_CURRENT_BINARY_DIR}/checker-assets")
-set(CHECKER_CACHE_FILES)
-set(RAYMMA_HAS_CHECKER_ASSETS OFF)
+set(OPEN_MODEL_CACHE_DIR "${CMAKE_CURRENT_BINARY_DIR}/open-model-assets")
+set(OPEN_MODEL_CACHE_FILES)
+set(RAYMMA_HAS_OPEN_MODEL_ASSETS OFF)
 
-if(RAYMMA_ENABLE_EXTERNAL_SCENES AND RAYMMA_CHECKER_ASSET_DIR)
-    set(_raymma_checker_inputs_present ON)
-    foreach(lod Low Mid High)
-        if(NOT EXISTS "${RAYMMA_CHECKER_ASSET_DIR}/${lod}1.glb")
-            set(_raymma_checker_inputs_present OFF)
-        endif()
-    endforeach()
-
-    if(_raymma_checker_inputs_present)
+if(RAYMMA_ENABLE_EXTERNAL_SCENES AND RAYMMA_OPEN_MODEL_ASSET_DIR)
+    set(_raymma_open_model_input
+        "${RAYMMA_OPEN_MODEL_ASSET_DIR}/coastal_cliff_01_1k.gltf")
+    if(EXISTS "${_raymma_open_model_input}")
         find_program(BLENDER_EXECUTABLE blender)
         if(BLENDER_EXECUTABLE)
-            foreach(lod Low Mid High)
-                set(output "${CHECKER_CACHE_DIR}/${lod}1.brtri")
+            set(_raymma_open_model_lods Low Mid High)
+            set(_raymma_open_model_targets 8517 71313 0)
+            foreach(lod target IN ZIP_LISTS
+                    _raymma_open_model_lods _raymma_open_model_targets)
+                set(output "${OPEN_MODEL_CACHE_DIR}/CoastalCliff${lod}.brtri")
                 set(texture_output
-                    "${CHECKER_CACHE_DIR}/${lod}1-albedo.png")
+                    "${OPEN_MODEL_CACHE_DIR}/CoastalCliff${lod}-albedo.png")
                 add_custom_command(
                     OUTPUT "${output}" "${texture_output}"
                     COMMAND "${CMAKE_COMMAND}" -E make_directory
-                            "${CHECKER_CACHE_DIR}"
+                            "${OPEN_MODEL_CACHE_DIR}"
                     COMMAND "${BLENDER_EXECUTABLE}"
                             --background --factory-startup
                             --python
-                            "${CMAKE_CURRENT_SOURCE_DIR}/tools/extract_checker_triangles.py"
+                            "${CMAKE_CURRENT_SOURCE_DIR}/tools/extract_scene_triangles.py"
                             --
-                            --input
-                            "${RAYMMA_CHECKER_ASSET_DIR}/${lod}1.glb"
+                            --input "${_raymma_open_model_input}"
                             --output "${output}"
                             --texture-output "${texture_output}"
+                            --target-triangles "${target}"
                     DEPENDS
-                        "${RAYMMA_CHECKER_ASSET_DIR}/${lod}1.glb"
-                        "${CMAKE_CURRENT_SOURCE_DIR}/tools/extract_checker_triangles.py"
-                    COMMENT "Extracting Checker1 ${lod} ray-tracing triangles"
+                        "${_raymma_open_model_input}"
+                        "${CMAKE_CURRENT_SOURCE_DIR}/tools/extract_scene_triangles.py"
+                    COMMENT "Extracting CC0 Coastal Cliff ${lod} ray-tracing triangles"
                     VERBATIM)
-                list(APPEND CHECKER_CACHE_FILES
+                list(APPEND OPEN_MODEL_CACHE_FILES
                     "${output}" "${texture_output}")
             endforeach()
             add_custom_target(
-                checker-ray-assets DEPENDS ${CHECKER_CACHE_FILES})
-            set(RAYMMA_HAS_CHECKER_ASSETS ON)
+                open-model-ray-assets DEPENDS ${OPEN_MODEL_CACHE_FILES})
+            set(RAYMMA_HAS_OPEN_MODEL_ASSETS ON)
         else()
             message(WARNING
-                "Checker GLBs were found, but Blender was not. "
-                "Checker scenes will be unavailable.")
+                "The Coastal Cliff glTF was found, but Blender was not. "
+                "Coastal Cliff scenes will be unavailable.")
         endif()
     else()
         message(WARNING
-            "RAYMMA_CHECKER_ASSET_DIR does not contain all three Checker GLBs. "
-            "Checker scenes will be unavailable.")
+            "RAYMMA_OPEN_MODEL_ASSET_DIR does not contain the fetched "
+            "Coastal Cliff asset. Run tools/fetch_open_model.sh first.")
     endif()
 endif()
 
@@ -104,27 +102,30 @@ else()
     set(_raymma_sanmiguel_path "")
 endif()
 
-set(_raymma_checker_low_path "")
-set(_raymma_checker_mid_path "")
-set(_raymma_checker_high_path "")
-if(RAYMMA_HAS_CHECKER_ASSETS)
-    set(_raymma_checker_low_path "${CHECKER_CACHE_DIR}/Low1.brtri")
-    set(_raymma_checker_mid_path "${CHECKER_CACHE_DIR}/Mid1.brtri")
-    set(_raymma_checker_high_path "${CHECKER_CACHE_DIR}/High1.brtri")
+set(_raymma_coastal_cliff_low_path "")
+set(_raymma_coastal_cliff_mid_path "")
+set(_raymma_coastal_cliff_high_path "")
+if(RAYMMA_HAS_OPEN_MODEL_ASSETS)
+    set(_raymma_coastal_cliff_low_path
+        "${OPEN_MODEL_CACHE_DIR}/CoastalCliffLow.brtri")
+    set(_raymma_coastal_cliff_mid_path
+        "${OPEN_MODEL_CACHE_DIR}/CoastalCliffMid.brtri")
+    set(_raymma_coastal_cliff_high_path
+        "${OPEN_MODEL_CACHE_DIR}/CoastalCliffHigh.brtri")
 endif()
 
 if(RAYMMA_BUILD_BENCHMARK)
     add_executable(tensor-wide-bvh-bench src/research_benchmark.cu)
-    if(TARGET checker-ray-assets)
-        add_dependencies(tensor-wide-bvh-bench checker-ray-assets)
+    if(TARGET open-model-ray-assets)
+        add_dependencies(tensor-wide-bvh-bench open-model-ray-assets)
     endif()
     target_compile_features(tensor-wide-bvh-bench PRIVATE cxx_std_17)
     target_compile_definitions(tensor-wide-bvh-bench PRIVATE
         RAYMMA_VERSION="${PROJECT_VERSION}"
         RAYMMA_BUILD_CONFIG="$<CONFIG>"
-        CHECKER_LOW_PATH="${_raymma_checker_low_path}"
-        CHECKER_MID_PATH="${_raymma_checker_mid_path}"
-        CHECKER_HIGH_PATH="${_raymma_checker_high_path}"
+        COASTAL_CLIFF_LOW_PATH="${_raymma_coastal_cliff_low_path}"
+        COASTAL_CLIFF_MID_PATH="${_raymma_coastal_cliff_mid_path}"
+        COASTAL_CLIFF_HIGH_PATH="${_raymma_coastal_cliff_high_path}"
         SIBENIK_PATH="${_raymma_sibenik_path}"
         SPONZA_PATH="${_raymma_sponza_path}"
         SANMIGUEL_PATH="${_raymma_sanmiguel_path}")
@@ -159,6 +160,9 @@ if(RAYMMA_BUILD_VIEWER)
     add_executable(raymma-viewer
         src/live_viewer.cu
         src/tinybvh_builder.cpp)
+    if(TARGET open-model-ray-assets)
+        add_dependencies(raymma-viewer open-model-ray-assets)
+    endif()
     target_compile_features(raymma-viewer PRIVATE cxx_std_17)
     target_include_directories(raymma-viewer PRIVATE
         "${RAYMMA_TINYBVH_INCLUDE_DIR}"
@@ -186,6 +190,28 @@ if(BUILD_TESTING)
         add_test(NAME tensor-wide-bvh-candidate-rich
             COMMAND tensor-wide-bvh-bench
                     --quick --candidate-rich --scene Grid)
+        add_test(NAME tensor-wide-bvh-uvt-depthsorted
+            COMMAND tensor-wide-bvh-bench
+                    --quick --variant uvt-depthsorted --scene Grid)
+        add_test(NAME tensor-wide-bvh-e0e1e2
+            COMMAND tensor-wide-bvh-bench
+                    --quick --variant e0e1e2 --scene Grid)
+        add_test(NAME tensor-wide-bvh-uvt-depthsorted-depth-order
+            COMMAND tensor-wide-bvh-bench
+                    --quick --resolution 17x17 --leaf 4
+                    --variant uvt-depthsorted --scene RegressionDepthSorted)
+        add_test(NAME tensor-wide-bvh-e0e1e2-depth-order
+            COMMAND tensor-wide-bvh-bench
+                    --quick --resolution 17x17 --leaf 4
+                    --variant e0e1e2 --scene RegressionDepthSorted)
+        add_test(NAME tensor-wide-bvh-uvt-depthsorted-depth-clip
+            COMMAND tensor-wide-bvh-bench
+                    --quick --resolution 17x17 --leaf 4
+                    --variant uvt-depthsorted --scene RegressionDepthClip)
+        add_test(NAME tensor-wide-bvh-e0e1e2-depth-clip
+            COMMAND tensor-wide-bvh-bench
+                    --quick --resolution 17x17 --leaf 4
+                    --variant e0e1e2 --scene RegressionDepthClip)
         foreach(count 5 6 7)
             add_test(NAME tensor-wide-bvh-odd-${count}
                 COMMAND tensor-wide-bvh-bench

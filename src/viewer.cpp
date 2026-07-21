@@ -52,7 +52,9 @@ static void drawImage(GLuint texture,float left,float right) {
 int main(int argc,char** argv) {
     if(argc!=4)
         return std::fprintf(
-            stderr,"usage: %s CUDA32.ppm CUDA16.ppm TENSOR16.ppm\n",argv[0]),2;
+            stderr,
+            "usage: %s CUDA32.ppm CUDA_PACKET16.ppm WMMA_VALIDATED.ppm\n",
+            argv[0]),2;
     Image images[3];
     for(int i=0;i<3;i++)if(!loadPpm(argv[i+1],&images[i]))
         return std::fprintf(stderr,"Cannot read P6 image: %s\n",argv[i+1]),1;
@@ -61,7 +63,7 @@ int main(int argc,char** argv) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,1);
     GLFWwindow* window=glfwCreateWindow(
         images[0].width*6,images[0].height*2,
-        "RayMMA 2x: CUDA32 | CUDA16 | Tensor16",nullptr,nullptr);
+        "RayMMA 2x: CUDA32 | CUDA-packet16 | WMMA-validated",nullptr,nullptr);
     if(!window) {
         glfwTerminate();
         return std::fprintf(stderr,"Cannot create OpenGL window\n"),1;

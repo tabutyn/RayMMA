@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Live High Checker renderer for the CUDA32, CUDA16, and WMMA research paths.
+// Live Coastal Cliff High renderer for CUDA32, packet16, and validated WMMA.
 #include <GLFW/glfw3.h>
 #include <cuda_fp16.h>
 #include <cuda_runtime.h>
@@ -425,7 +425,7 @@ static Scene loadScene(
     input.read(magic,8);
     input.read(reinterpret_cast<char*>(&count),4);
     if(!input||std::memcmp(magic,"BRTRI003",8)||!count) {
-        std::fprintf(stderr,"Invalid High Checker cache: %s\n",geometryPath);
+        std::fprintf(stderr,"Invalid Coastal Cliff High cache: %s\n",geometryPath);
         std::exit(1);
     }
     std::vector<Triangle> triangles(count);
@@ -436,7 +436,7 @@ static Scene loadScene(
         input.read(reinterpret_cast<char*>(values),sizeof(values));
         input.read(reinterpret_cast<char*>(&color),sizeof(color));
         if(!input) {
-            std::fprintf(stderr,"Truncated High Checker cache\n");
+            std::fprintf(stderr,"Truncated Coastal Cliff High cache\n");
             std::exit(1);
         }
         triangles[i]={
@@ -567,8 +567,8 @@ enum class Backend { Cuda32, Cuda16, Tensor16 };
 static const char* backendName(Backend backend) {
     switch(backend) {
     case Backend::Cuda32:return "CUDA32 independent";
-    case Backend::Cuda16:return "CUDA16 packet";
-    case Backend::Tensor16:return "Tensor16 WMMA";
+    case Backend::Cuda16:return "CUDA-packet16";
+    case Backend::Tensor16:return "WMMA-validated (F16->F32 + Moller)";
     }
     return "";
 }
@@ -584,9 +584,9 @@ static void keyCallback(GLFWwindow* window,int key,int,int action,int) {
 
 int main(int argc,char** argv) {
     const char* geometry=argc>1?argv[1]:
-        "build/external/checker-assets/High1.brtri";
+        "build/core/open-model-assets/CoastalCliffHigh.brtri";
     const char* texture=argc>2?argv[2]:
-        "build/external/checker-assets/High1-albedo.png";
+        "build/core/open-model-assets/CoastalCliffHigh-albedo.png";
     int leafTriangles=argc>3?std::max(4,std::atoi(argv[3])):256;
     leafTriangles=(leafTriangles+3)&~3;
 
@@ -606,7 +606,7 @@ int main(int argc,char** argv) {
         return 1;
     }
     GLFWwindow* window=glfwCreateWindow(
-        1280,720,"RayMMA High Checker — starting",nullptr,nullptr);
+        1280,720,"RayMMA Coastal Cliff High — starting",nullptr,nullptr);
     if(!window) {
         std::fprintf(stderr,"Could not create OpenGL window\n");
         glfwTerminate();
@@ -715,7 +715,7 @@ int main(int argc,char** argv) {
         char title[512];
         std::snprintf(
             title,sizeof(title),
-            "RayMMA High Checker | %s | 1920x1080 | %.2f ms GPU (%.1f FPS) "
+            "RayMMA Coastal Cliff High | %s | 1920x1080 | %.2f ms GPU (%.1f FPS) "
             "| %d tris/leaf | WMMA %s | Space: cycle  "
             "P: pause  Arrows: orbit",
             backendName(backend),smoothedMs,1000.f/smoothedMs,leafTriangles,

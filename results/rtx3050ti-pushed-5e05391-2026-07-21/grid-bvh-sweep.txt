@@ -1,0 +1,51 @@
+RayMMA 0.1.0 (Release) on NVIDIA GeForce RTX 3050 Ti Laptop GPU, compute 8.6
+CUDA driver API 13.1, runtime 13.1
+BVH builder sweep -> BVH8, <=16-triangle leaves, primary rays, 9 samples
+
+Grid: 32768 source / 32768 packed triangles | builtin-binned-SAH -> BVH8 619 nodes | 2613 leaves, logical leaf min/mean/max 4/12.5/16 | build+pack+upload 35.0 ms | exact-only coefficient batches=0
+  rays: primary, 36864 active of 36864 camera samples | set hash b7b1059fc2c9b8d1
+  coherent        256x144 (36864 rays)
+    integrated: CUDA32 0.4556 [0.4483,0.4651] ms | CUDA16 0.6214 [0.6144,0.6267] ms | Tensor16 0.7464 [0.7270,0.7516] ms
+    speedup: Tensor16 vs tuned CUDA32 0.610x | vs diagnostic CUDA16 0.833x
+    separated: traversal 0.4412 ms | CUDA leaves 0.2970 ms | Tensor leaves 0.4393 ms (0.676x) | total 0.7381/0.8804 ms
+    workload: 1.52 nodes/ray 0.20 leaves/ray 2.6 triangle tests/ray | Tensor exact 1.5/ray | numeric fallbacks=0 | hits=3263 | packet leaves max=57 overflow=0 | CUDA32 stack overflow=0
+    correctness: CUDA32 hit/miss=0 primitive=0 max|dt|=0 rel=0 | tensor hit/miss=0 primitive=0 max|dt|=0 rel=0 | phased hit/miss=0 primitive=0 max|dt|=0 rel=0 | BVH/brute-256 hit/miss=0 primitive=0 max|dt|=0 rel=0 => PASS
+  packet-shuffled 256x144 (36864 rays)
+    integrated: CUDA32 0.6154 [0.6011,0.6195] ms | CUDA16 1.3270 [1.3147,1.3332] ms | Tensor16 1.4807 [1.4671,1.4889] ms
+    speedup: Tensor16 vs tuned CUDA32 0.416x | vs diagnostic CUDA16 0.896x
+    separated: traversal 1.3947 ms | CUDA leaves 0.2519 ms | Tensor leaves 0.3972 ms (0.634x) | total 1.6466/1.7919 ms
+    workload: 1.52 nodes/ray 0.20 leaves/ray 2.6 triangle tests/ray | Tensor exact 1.5/ray | numeric fallbacks=0 | hits=3263 | packet leaves max=25 overflow=0 | CUDA32 stack overflow=0
+    correctness: CUDA32 hit/miss=0 primitive=0 max|dt|=0 rel=0 | tensor hit/miss=0 primitive=0 max|dt|=0 rel=0 | phased hit/miss=0 primitive=0 max|dt|=0 rel=0 | BVH/brute-256 hit/miss=0 primitive=0 max|dt|=0 rel=0 => PASS
+
+Grid: 32768 source / 65764 packed triangles | TinyBVH-binned-SAH -> BVH8 4712 nodes | 16441 leaves, logical leaf min/mean/max 1/2.0/2 | build+pack+upload 49.5 ms | exact-only coefficient batches=0
+  rays: primary, 36864 active of 36864 camera samples | set hash b7b1059fc2c9b8d1
+  coherent        256x144 (36864 rays)
+    integrated: CUDA32 0.3236 [0.3184,0.3287] ms | CUDA16 0.8199 [0.8138,0.8284] ms | Tensor16 0.9124 [0.8909,0.9236] ms
+    speedup: Tensor16 vs tuned CUDA32 0.355x | vs diagnostic CUDA16 0.899x
+    separated: traversal 0.8274 ms | CUDA leaves 0.1618 ms | Tensor leaves 0.2304 ms (0.702x) | total 0.9892/1.0578 ms
+    workload: 1.75 nodes/ray 0.20 leaves/ray 0.8 triangle tests/ray | Tensor exact 0.7/ray | numeric fallbacks=0 | hits=3263 | packet leaves max=89 overflow=0 | CUDA32 stack overflow=0
+    correctness: CUDA32 hit/miss=0 primitive=0 max|dt|=0 rel=0 | tensor hit/miss=0 primitive=0 max|dt|=0 rel=0 | phased hit/miss=0 primitive=0 max|dt|=0 rel=0 | BVH/brute-256 hit/miss=0 primitive=0 max|dt|=0 rel=0 => PASS
+  packet-shuffled 256x144 (36864 rays)
+    integrated: CUDA32 0.6728 [0.6666,0.6789] ms | CUDA16 1.7469 [1.7328,1.7531] ms | Tensor16 1.8492 [1.8360,1.8514] ms
+    speedup: Tensor16 vs tuned CUDA32 0.364x | vs diagnostic CUDA16 0.945x
+    separated: traversal 1.9354 ms | CUDA leaves 0.0952 ms | Tensor leaves 0.1423 ms (0.669x) | total 2.0306/2.0777 ms
+    workload: 1.75 nodes/ray 0.20 leaves/ray 0.8 triangle tests/ray | Tensor exact 0.7/ray | numeric fallbacks=0 | hits=3263 | packet leaves max=27 overflow=0 | CUDA32 stack overflow=0
+    correctness: CUDA32 hit/miss=0 primitive=0 max|dt|=0 rel=0 | tensor hit/miss=0 primitive=0 max|dt|=0 rel=0 | phased hit/miss=0 primitive=0 max|dt|=0 rel=0 | BVH/brute-256 hit/miss=0 primitive=0 max|dt|=0 rel=0 => PASS
+
+Grid: 32768 source / 65764 packed triangles | TinyBVH-spatial-split -> BVH8 4712 nodes | 16441 leaves, logical leaf min/mean/max 1/2.0/2 | build+pack+upload 120.1 ms | exact-only coefficient batches=0
+  rays: primary, 36864 active of 36864 camera samples | set hash b7b1059fc2c9b8d1
+  coherent        256x144 (36864 rays)
+    integrated: CUDA32 0.3286 [0.3174,0.3308] ms | CUDA16 0.8366 [0.8212,0.8458] ms | Tensor16 0.9226 [0.9028,0.9318] ms
+    speedup: Tensor16 vs tuned CUDA32 0.356x | vs diagnostic CUDA16 0.907x
+    separated: traversal 0.8233 ms | CUDA leaves 0.1628 ms | Tensor leaves 0.2303 ms (0.707x) | total 0.9861/1.0536 ms
+    workload: 1.75 nodes/ray 0.20 leaves/ray 0.8 triangle tests/ray | Tensor exact 0.7/ray | numeric fallbacks=0 | hits=3263 | packet leaves max=89 overflow=0 | CUDA32 stack overflow=0
+    correctness: CUDA32 hit/miss=0 primitive=0 max|dt|=0 rel=0 | tensor hit/miss=0 primitive=0 max|dt|=0 rel=0 | phased hit/miss=0 primitive=0 max|dt|=0 rel=0 | BVH/brute-256 hit/miss=0 primitive=0 max|dt|=0 rel=0 => PASS
+  packet-shuffled 256x144 (36864 rays)
+    integrated: CUDA32 0.6725 [0.6676,0.6779] ms | CUDA16 1.7428 [1.7295,1.7518] ms | Tensor16 1.8483 [1.8340,1.8573] ms
+    speedup: Tensor16 vs tuned CUDA32 0.364x | vs diagnostic CUDA16 0.943x
+    separated: traversal 1.9261 ms | CUDA leaves 0.0962 ms | Tensor leaves 0.1423 ms (0.676x) | total 2.0223/2.0684 ms
+    workload: 1.75 nodes/ray 0.20 leaves/ray 0.8 triangle tests/ray | Tensor exact 0.7/ray | numeric fallbacks=0 | hits=3263 | packet leaves max=27 overflow=0 | CUDA32 stack overflow=0
+    correctness: CUDA32 hit/miss=0 primitive=0 max|dt|=0 rel=0 | tensor hit/miss=0 primitive=0 max|dt|=0 rel=0 | phased hit/miss=0 primitive=0 max|dt|=0 rel=0 | BVH/brute-256 hit/miss=0 primitive=0 max|dt|=0 rel=0 => PASS
+
+research suite => PASS
+

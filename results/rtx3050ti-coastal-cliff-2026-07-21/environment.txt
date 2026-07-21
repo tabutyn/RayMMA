@@ -1,0 +1,76 @@
+captured_utc=2026-07-21T12:20:58Z
+repository=RayMMA
+publication_note=Inspect this output for private paths and filenames before sharing.
+commit=847105571f603b8edb8669983a4a9b487ed88ac8
+describe=84710557
+status_begin
+ M .github/ISSUE_TEMPLATE/benchmark-result.yml
+ M .gitignore
+ M CHANGELOG.md
+ M CITATION.cff
+ M CMakeLists.txt
+ M CONTRIBUTING.md
+ M README.md
+ M SECURITY.md
+ M THIRD_PARTY.md
+ D docs/GITHUB_POST.md
+ M docs/METHOD.md
+ M docs/RELATED_WORK.md
+ D docs/RELEASE_CHECKLIST.md
+ D docs/REPOSITORY_PROFILE.md
+ M docs/REPRODUCIBILITY.md
+ M docs/RESULTS_RTX3050TI.md
+ M prototype/ALGEBRA.md
+ M prototype/README.md
+ M results/README.md
+ M results/rtx3050ti-grid-2026-07-19/README.md
+ M src/live_viewer.cu
+ M src/research_benchmark.cu
+ M src/viewer.cpp
+ M tools/capture_environment.sh
+ M tools/export_public_tree.sh
+ D tools/extract_checker_triangles.py
+?? .github/workflows/reuse.yml
+?? LICENSES/
+?? REUSE.toml
+?? docs/RESULTS.md
+?? results/rtx3050ti-coastal-cliff-2026-07-21/
+?? results/rtx3050ti-pushed-5e05391-2026-07-21/
+?? tools/extract_scene_triangles.py
+?? tools/fetch_open_model.sh
+status_end
+
+[system]
+Linux 6.1.0-50-amd64 x86_64 GNU/Linux
+Architecture:                            x86_64
+CPU(s):                                  8
+Model name:                              11th Gen Intel(R) Core(TM) i7-11370H @ 3.30GHz
+
+[gpu]
+NVIDIA GeForce RTX 3050 Ti Laptop GPU, 4096 MiB, 590.44.01, P0, [N/A], 1485 MHz, 6001 MHz
+
+[toolchain]
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2025 NVIDIA Corporation
+Built on Fri_Nov__7_07:23:37_PM_PST_2025
+Cuda compilation tools, release 13.1, V13.1.80
+Build cuda_13.1.r13.1/compiler.36836380_0
+cmake version 3.25.1
+
+CMake suite maintained and supported by Kitware (kitware.com/cmake).
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+Python 3.11.2
+
+[cmake-cache]
+CMAKE_BUILD_TYPE:STRING=Release
+CMAKE_CUDA_ARCHITECTURES:UNINITIALIZED=86
+CMAKE_CUDA_COMPILER:UNINITIALIZED=/usr/local/cuda-13.1/bin/nvcc
+CMAKE_CXX_COMPILER:FILEPATH=/usr/bin/c++
+RAYMMA_BUILD_BENCHMARK:BOOL=ON
+RAYMMA_BUILD_VIEWER:BOOL=OFF
+RAYMMA_ENABLE_EXTERNAL_SCENES:BOOL=ON
+RAYMMA_ENABLE_TINYBVH:BOOL=OFF

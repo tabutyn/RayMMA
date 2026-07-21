@@ -1,0 +1,10 @@
+version = 1
+SPDX-PackageName = "RayMMA"
+SPDX-PackageSupplier = "Person: Thomas Butyn"
+SPDX-PackageDownloadLocation = "https://github.com/tabutyn/RayMMA"
+
+[[annotations]]
+path = ["**"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Thomas Butyn"
+SPDX-License-Identifier = "MIT"

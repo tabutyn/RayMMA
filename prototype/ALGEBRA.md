@@ -1,9 +1,9 @@
 # Separated ray/triangle intersection algebra
 
-This note derives the exact values computed by the accompanying WMMA prototype.
-The purpose of the derivation is to ensure that every multiplication performed
-for a ray/triangle pair combines a **triangle-only coefficient** with a
-**ray-only feature**.
+This note derives the exact real-arithmetic expressions approximated by the
+accompanying WMMA prototype. The purpose is to ensure that every
+multiplication performed for a ray/triangle pair combines a **triangle-only
+coefficient** with a **ray-only feature**.
 
 ## 1. Geometry convention
 
@@ -118,6 +118,22 @@ The CUDA implementation pads both operands with six zeros to obtain a
 while 16 rays contribute 16 columns. One `m16n16k16` WMMA tile therefore
 produces the four values for each of 4*16 = 64 ray/triangle pairs.
 
+### Direct three-edge row form
+
+An alternative tile evaluates all three oriented edge functions directly.
+Let `V0=A`, `V1=A+C`, `V2=A+B`, and retain `m=cross(O,r)`. Use:
+
+```text
+E0 = dot(cross(V1,V2),r) + dot(V2-V1,m)
+E1 = dot(cross(V2,V0),r) + dot(V0-V2,m)
+E2 = dot(cross(V0,V1),r) + dot(V1-V0,m)
+```
+
+Then `Delta=E0+E1+E2`, `u=E1/Delta`, and `v=E2/Delta`. A fourth `Nt` row
+retains depth, yielding the row order `[E0,E1,E2,Nt]`. This form makes the
+third edge an independent Tensor result rather than subtracting `Nu` and `Nv`
+from `Delta`.
+
 ## 5. Hit testing without immediate division
 
 For a two-sided triangle, first orient all values to a positive denominator:
@@ -152,6 +168,14 @@ Only surviving candidates need divisions. The recovered coordinates are
 - Large world-space positions make `cross(O,r)`, `cross(B,A)`, and `dot(A,n)`
   vulnerable to FP16 overflow and cancellation. A production implementation
   should use BVH-leaf-local coordinates or another local coordinate frame.
+- If a local transform is `P' = s(P-center)` while `r` remains unscaled, the
+  Tensor ratio returns `t' = s*t`; recover world depth with `t=t'/s`. Edge
+  values scale as `s^2`, while `Nt` scales as `s^3`.
+- Multiplying all four rows of one triangle by the same power of two preserves
+  every exact ratio before quantization and can keep coefficients for triangles
+  smaller than their shared four-triangle frame out of FP16's
+  subnormal/underflow range. It does not add relative mantissa precision to
+  values already normal in FP16.
 - Use an FP32 fallback near `Delta == 0` and near barycentric boundaries if
   watertight behavior is required.
 - The method evaluates a dense Cartesian product. It is useful only when the

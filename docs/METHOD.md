@@ -4,8 +4,9 @@ RayMMA asks a narrow question: when a traversal stage presents many
 ray/triangle candidates, can a Tensor Core reject enough pairs to beat the
 same work expressed as scalar FP32 CUDA intersections?
 
-It is a hybrid candidate-filtering method, not a replacement for a complete
-ray-tracing pipeline.
+The default mode is a hybrid candidate-filtering method. Experimental modes
+also expose the raw Tensor-owned hit result; none is a replacement for a
+complete ray-tracing pipeline.
 
 ## Separated intersection algebra
 
@@ -66,7 +67,7 @@ wmma::store_matrix_sync(...);
 The inputs are FP16 and accumulation is FP32. Triangle coefficients are
 prepacked; ray features are produced per packet.
 
-## End-to-end path
+## Default validated path
 
 ```text
 16-ray packet
@@ -93,12 +94,16 @@ variable, not a fixed recommendation; the documented sweep tests maxima from
 4 through 256, while actual leaves may be smaller.
 
 Each group of four triangles uses a local center and scale before conversion
-to FP16. This reduces overflow and cancellation risk from large world
-coordinates; it does not guarantee representability.
+to FP16. Each triangle's four rows then receive one common power-of-two scale,
+which preserves the exact `t`, `u`, and `v` ratios before FP16 quantization and
+mainly keeps small coefficients out of the subnormal/underflow range. It does
+not add relative precision to values already normal in FP16. These transforms
+reduce range loss and cancellation risk; they do not guarantee
+representability.
 
-## Numerical policy
+## Validated numerical policy
 
-WMMA never owns the final hit decision:
+In this mode, WMMA never owns the final hit decision:
 
 1. Out-of-range/non-finite ray features or non-finite WMMA results go directly
    to FP32 validation for that ray and four-triangle group.
@@ -119,15 +124,76 @@ An earlier narrower filter rejected six valid Sponza candidates among 147,456
 rays. That failure is retained in the results because it explains why
 Checker-only validation was insufficient.
 
+## Experimental Tensor-owned policies
+
+The `uvt-depthsorted` variant consumes the same four WMMA outputs but removes
+the broad envelope and FP32 validation. Let `d`, `U`, and `V` be `Delta`,
+`Nu`, and `Nv` oriented by the sign of `Delta`. It requires
+
+```text
+U >= 0, V >= 0, U + V <= d.
+```
+
+It then recovers local depth from `Nt/Delta` and converts it to the original
+ray parameter:
+
+```text
+t_world = (Nt / Delta) / frame.scale.
+```
+
+The division by `frame.scale` is essential: edge values and `Delta` scale as
+`s^2` in a local frame, while `Nt` scales as `s^3`. Accepted depth updates are
+written directly to the closest hit, and integrated traversal passes that
+depth to every later AABB test. There is no Möller–Trumbore call.
+
+The `e0e1e2` variant packs three oriented edge functions instead of `Nu`,
+`Nv`, and a direct determinant row. For vertices `V0=A`, `V1=A+C`, and
+`V2=A+B`, it evaluates
+
+```text
+E0 = dot(cross(V1,V2),r) + dot(V2-V1,cross(O,r))
+E1 = dot(cross(V2,V0),r) + dot(V0-V2,cross(O,r))
+E2 = dot(cross(V0,V1),r) + dot(V1-V0,cross(O,r))
+Delta = E0 + E1 + E2.
+```
+
+The three signed edge values own inclusion; `u=E1/Delta`, `v=E2/Delta`, and
+the fourth row supplies `Nt` for the same world-depth calculation. This tests
+whether directly evaluating every edge behaves better than deriving the third
+edge as `Delta-Nu-Nv`.
+
+Both variants reject an approximate WMMA `|Delta| < 1e-5` after row
+normalization and reject non-finite results implicitly through their
+comparisons. This is not a world-space, angular, or fully triangle-scale-
+invariant threshold; a sufficiently small face-on triangle can still
+disappear. `e0e1e2` also forms `Delta` by summing three independently rounded
+outputs. An unrepresentable coefficient batch is skipped instead of falling
+back to Möller. Timed kernels intentionally omit per-ray FP16 range checks; an
+overflowed ray feature will normally turn the quartet into a false miss. The
+guard and zero-tolerance edge bounds are empirical policy, not a watertight
+bound. They do not constrain `Nt` error. A false positive with underestimated
+depth can replace the true surface and prune later BVH nodes, producing an
+interior or wrong-surface artifact rather than merely an inaccurate edge.
+
+Accordingly, approximate output reports false positives, false negatives,
+wrong primitives, invalid values, and maximum absolute/relative depth error.
+Those disagreements do not by themselves fail the research harness. Baseline
+correctness, valid indices/finite values, packet capacity, nonempty behavior,
+and dedicated nearest-depth and cross-leaf-clipping fixtures remain mandatory.
+
 ## Matched comparison
 
-The Tensor and matched CUDA paths consume the same:
+The validated WMMA and matched CUDA-packet16 paths consume the same:
 
 - BVH and triangle order;
 - 16-ray packets and ray set;
 - leaf-size configuration;
 - FP32 intersection predicate and closest-hit output; and
 - CUDA-event timing scope.
+
+The approximate variants retain the same BVH, packets, leaf configuration,
+and timing scope, but deliberately replace the FP32 predicate and depth with
+their Tensor outputs.
 
 This isolates the candidate-processing strategy. It does not make the matched
 path the fastest possible CUDA renderer: its 32-lane warp owns only 16 rays to
@@ -155,18 +221,14 @@ camera misses are compacted away, and each hit creates a deterministic
 cosine-weighted direction in the oriented surface hemisphere. Bounce
 generation and compaction time are reported but excluded from trace timing.
 
-## Hypothesis supported by current evidence
+For phase-separated diagnostics, traversal collects leaves with an infinite
+depth bound before either leaf kernel runs. Its displayed sum is therefore a
+fixed-work diagnostic, not a decomposition of integrated traversal with
+Tensor-owned clipping.
 
-In the historical RTX 3050 Ti run, the FP16-WMMA filter beat matched FP32 CUDA
-with configured leaf maxima of 128–256 triangles. With selective 4–16 maxima,
-WMMA setup, synchronization, inactive pairs, and FP32 fallbacks cost more than
-the intersections they avoided. The best fine-leaf CUDA configuration
-remained faster in absolute time. Those timings need a release-commit rerun
-with raw samples.
+## Interpretation
 
-The new independent-ray CUDA32 control was faster than Tensor in every local
-Grid quick sweep on the RTX 3050 Ti, including primary, diffuse-secondary,
-built-in BVH, TinyBVH SAH, and TinyBVH spatial-split cases. This supersedes a
-renderer-level interpretation of the earlier half-warp crossover. The next
-research question is whether packet/leaf compaction can create dense MMA tiles
-without deliberately weakening BVH selectivity.
+Algorithm description and measured evidence are kept separate so this method
+document does not silently promote a provisional timing into a general claim.
+See [Findings and evidence](RESULTS.md) for the current conclusion, evidence
+tiers, and historical boundary.

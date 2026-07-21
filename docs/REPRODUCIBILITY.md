@@ -38,6 +38,10 @@ downloaded scene assets.
 ./build/core/tensor-wide-bvh-bench --scene Grid
 ./build/core/tensor-wide-bvh-bench --leaf 16 --scene Grid
 ./build/core/tensor-wide-bvh-bench --candidate-rich --scene Grid
+./build/core/tensor-wide-bvh-bench \
+  --quick --variant uvt-depthsorted --scene Grid
+./build/core/tensor-wide-bvh-bench \
+  --quick --variant e0e1e2 --scene Grid
 ./build/core/tensor-wide-bvh-bench --leaf-sweep --scene Grid
 ./build/core/tensor-wide-bvh-bench --ray-mode secondary --scene Grid
 ./build/core/tensor-wide-bvh-bench --resolution 512x288 --scene Grid
@@ -53,6 +57,20 @@ may be smaller. Primary rays are measured in coherent order and deterministicall
 shuffled order. `--ray-mode secondary` traces the primaries, emits
 cosine-weighted diffuse bounces at actual hits, compacts primary misses, and
 measures pixel-ordered and deterministically shuffled bounce rays.
+
+The default `--variant validated` uses FP16-input, FP32-accumulated WMMA output
+only as a broad filter and gives the final predicate and depth to FP32
+Möller–Trumbore.
+`uvt-depthsorted` and `e0e1e2` are approximate Tensor-owned experiments:
+FP16-input, FP32-accumulated WMMA edge values own hit inclusion and their
+derived `t` owns closest-hit order and integrated BVH clipping. They perform
+zero Möller checks; traversal and postprocessing remain ordinary CUDA/FP32.
+
+`--render-prefix raymma-grid` writes `-cuda32.ppm`,
+`-cuda-packet16.ppm`, and either `-wmma-validated.ppm`,
+`-uvt-depthsorted.ppm`, or `-e0e1e2.ppm`. These images visualize hit and
+source-primitive disagreement; same-primitive depth error remains in the
+console counters.
 
 ## Optional standard scenes
 
@@ -72,17 +90,22 @@ cmake --build --preset core --parallel
 Missing optional inputs are skipped. Requesting an unavailable scene by name
 returns an error rather than silently substituting another scene.
 
-Checker L/M/H additionally require user-supplied `Low1.glb`, `Mid1.glb`, and
-`High1.glb` files plus Blender:
+The `CoastalCliffLow/Mid/High` tiers use Poly Haven's Coastal Cliff 01 model,
+which Poly Haven publishes under CC0 1.0. The fetcher pins and verifies the
+source glTF, geometry, and 1K textures. Blender 4.5.2 produced 8,516, 71,312,
+and 461,824-triangle caches; record the counts and Blender version because
+decimation output can vary between Blender releases:
 
 ```sh
+./tools/fetch_open_model.sh
 cmake --preset core \
   -DRAYMMA_ENABLE_EXTERNAL_SCENES=ON \
-  -DRAYMMA_CHECKER_ASSET_DIR=/path/to/licensed/checker-glbs
+  -DRAYMMA_OPEN_MODEL_ASSET_DIR="$PWD/build/scenes/coastal-cliff-01"
 ```
 
-Do not publish those files unless you have documented redistribution rights
-for both geometry and embedded textures.
+The downloaded asset may be redistributed under CC0, although RayMMA keeps it
+out of the source archive to avoid adding roughly 15 MB. Preserve its identity
+and hashes when publishing benchmark results.
 
 ## Optional TinyBVH builder controls
 
@@ -108,15 +131,15 @@ The research harness:
 
 - performs six untimed warmup rounds;
 - collects nine CUDA-event samples by default;
-- rotates CUDA32, matched CUDA16, and Tensor launch order;
+- rotates CUDA32, matched CUDA-packet16, and WMMA launch order;
 - reports median, p10, and p90;
 - excludes BVH build, allocation, upload, and presentation from integrated
   trace time; and
 - separately reports traversal and leaf-processing diagnostics.
 
-The primary speedup is `CUDA32 median / Tensor median`. A value below one
-means the Tensor path is slower. The matched CUDA16 ratio remains a diagnostic
-for isolating 16-ray packet arithmetic.
+The primary speedup is `CUDA32 median / WMMA median`. A value below one
+means the WMMA path is slower. The matched CUDA-packet16 ratio remains a
+diagnostic for isolating 16-ray packet arithmetic.
 
 Tensor-specific coefficient construction, local-frame construction, packing,
 and storage are outside the integrated trace-kernel timing. Include them
@@ -127,22 +150,34 @@ hit is not known until its later leaf kernel. Its summed time is diagnostic,
 not directly interchangeable with the integrated traversal. Traversal, all
 CUDA leaf samples, and all Tensor leaf samples are collected sequentially;
 the displayed total is a sum of independently sampled medians, not a median of
-paired end-to-end samples.
+paired end-to-end samples. In approximate variants it also omits the candidate
+work removed by Tensor-owned depth clipping, so the output labels it
+`separated fixed-work`.
 
 ## Correctness contract
 
-For every full image, CUDA32 and Tensor must match CUDA16 hit/miss, primitive
-ID, and depth tolerance. The release harness also brute-forces up to 256
-deterministic, 16-by-16 image-stratified rays selected by original pixel
-coordinate in both
-coherent and packet-shuffled order. A brute-force primitive mismatch is a
-failure. Equal-depth or coplanar differences must be investigated explicitly
-rather than bypassing the gate. Packet-leaf overflow is a failure.
+For `validated`, every full image from CUDA32 and WMMA must match the
+CUDA-packet16 hit/miss mask, primitive ID, and depth tolerance. The release
+harness also brute-forces up to 256 deterministic, 16-by-16 image-stratified
+rays selected by original pixel coordinate in both coherent and packet-shuffled order. A
+brute-force primitive mismatch is a failure. Equal-depth or coplanar
+differences must be investigated explicitly rather than bypassing the gate.
+Packet-leaf overflow is a failure.
 
-The suite includes odd 5/6/7-triangle leaf-layout cases and a far-camera,
-tiny-triangle FP16-range case. It is not a proof of numerical safety. Add
-broader near-edge, near-parallel, large-coordinate, tiny-triangle, and
-degenerate generators before making a formal robustness claim.
+For `uvt-depthsorted` and `e0e1e2`, image disagreement is part of the result.
+The console separately reports false positives per ray, false negatives and
+wrong primitives per reference hit, invalid outputs, and maximum depth error.
+A harness `PASS` in these modes means the reference baselines,
+bounds/index safety, packet capacity, nonempty-hit sanity check, and dedicated
+depth regressions passed; it does **not** mean approximate image equality.
+Save the console counters with every timing run.
+
+The suite includes odd 5/6/7-triangle leaf-layout cases, a far-camera
+tiny-triangle FP16-range case, a farther-first nearest-hit case, and a
+separate-leaf fixture that verifies world depth clips a later BVH leaf. It is
+not a proof of numerical safety. Add broader near-edge, near-parallel,
+large-coordinate, tiny-triangle, and degenerate generators before making a
+formal robustness claim.
 
 ## Evidence to save with every result
 
@@ -151,6 +186,10 @@ Run:
 ```sh
 ./tools/capture_environment.sh build/core > environment.txt
 ```
+
+The helper is not an automatic sanitizer. Run it from a clean public checkout
+and inspect compiler paths, dirty filenames, and every cache line before
+publishing the output.
 
 Archive:
 
@@ -163,13 +202,18 @@ Archive:
 - every correctness counter.
 
 `--raw-csv FILE` writes every integrated and phase-separated CUDA-event sample
-with scene, ray kind, ray order, BVH builder, resolution, maximum leaf size,
-timing scope, and sample index. Keep the console output and environment file
-beside it; the CSV alone does not record the command, commit, scene hash, or
-correctness counters.
+with scene, ray kind, ray order, BVH builder, Tensor variant, resolution,
+maximum leaf size, timing scope, and sample index. Stable Tensor scopes remain
+`integrated-tensor` and `separated-tensor-leaves`; use the `tensor_variant`
+column to distinguish algorithms. Keep the console output and environment
+file beside it; the CSV alone does not record the command, commit, scene hash,
+or correctness counters.
 
 The historical Checker/Sibenik/Sponza RTX 3050 Ti tables are an exploratory
 snapshot. They are in
 [`RESULTS_RTX3050TI.md`](RESULTS_RTX3050TI.md); their raw samples were not
 retained, so they should be rerun before a formal release or paper. The newer
-procedural Grid spot check has its own raw bundle under `results/`.
+procedural Grid spot check has a provisional raw bundle under `results/`, but
+its pre-public source is not reconstructable from the clean repository and it
+does not include CUDA32 or the no-Möller variants. See
+[`RESULTS.md`](RESULTS.md) for the evidence-status matrix.

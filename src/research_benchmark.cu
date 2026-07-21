@@ -40,6 +40,13 @@ constexpr int PACKET_RAYS=16;
 constexpr int CUDA_PACKET_RAYS=32;
 constexpr int CUDA_BLOCK_THREADS=4*CUDA_PACKET_RAYS;
 constexpr int MAX_PACKET_LEAVES=1024;
+constexpr float APPROXIMATE_DETERMINANT_FLOOR=1e-5f;
+
+enum class TensorVariant {
+    Validated,
+    UvtDepthSorted,
+    E0E1E2,
+};
 
 #define CUDA_CHECK(x) do { cudaError_t e=(x); if(e!=cudaSuccess) { \
     std::fprintf(stderr,"CUDA %s:%d: %s\n",__FILE__,__LINE__, \
@@ -197,7 +204,7 @@ __global__ void traceMatchedWide(
 }
 
 // Full-warp CUDA control: one independent ray per lane with a private short
-// stack and exact FP32 Moller-Trumbore leaf tests. Independent traversal avoids
+// stack and FP32 Moller-Trumbore leaf tests. Independent traversal avoids
 // charging CUDA for the union of all nodes touched by an incoherent warp.
 __global__ __launch_bounds__(CUDA_BLOCK_THREADS,4) void traceCuda32Wide(
     Hit* __restrict__ output,const Ray* __restrict__ rays,int rayCount,
@@ -290,6 +297,7 @@ __global__ void generateDiffuseSecondary(
     valid[index]=1;
 }
 
+template<TensorVariant Variant>
 __device__ void runTensorLeaf(
     Hit* hit,Ray ray,uint32_t rayMask,int lane,int firstTriangle,
     int triangleCount,const Triangle* triangles,const half* coefficients,
@@ -302,6 +310,8 @@ __device__ void runTensorLeaf(
     for(int batch=firstBatch;batch<endBatch;batch++) {
         LocalFrame frame=frames[batch];
         bool unsafeBatch=!(frame.scale>0.f);
+        if constexpr(Variant!=TensorVariant::Validated)
+            if(unsafeBatch)continue;
         bool unsafeFeatures=unsafeBatch;
         if(lane<PACKET_RAYS) {
             Vec3 origin=unsafeBatch?Vec3{0,0,0}:
@@ -310,13 +320,19 @@ __device__ void runTensorLeaf(
             float input[10]={
                 1,origin.x,origin.y,origin.z,
                 ray.d.x,ray.d.y,ray.d.z,m.x,m.y,m.z};
-            #pragma unroll
-            for(int k=0;k<10;k++)
-                unsafeFeatures|=!isfinite(input[k])||fabsf(input[k])>65504.f;
+            if constexpr(Variant==TensorVariant::Validated) {
+                #pragma unroll
+                for(int k=0;k<10;k++)
+                    unsafeFeatures|=
+                        !isfinite(input[k])||fabsf(input[k])>65504.f;
+            }
             half* f=features+lane*16;
             #pragma unroll
             for(int k=0;k<16;k++)
-                f[k]=__float2half(k<10&&!unsafeFeatures?input[k]:0.f);
+                f[k]=__float2half(
+                    k<10&&
+                    (Variant!=TensorVariant::Validated||!unsafeFeatures)?
+                    input[k]:0.f);
         }
         __syncwarp();
         wmma::fragment<
@@ -336,30 +352,67 @@ __device__ void runTensorLeaf(
             for(int local=0;local<4;local++) {
                 int triangle=batch*4+local;
                 if(triangle<firstTriangle||triangle>=endTriangle)continue;
-                float nu=values[(local*4+1)*16+lane];
-                float nv=values[(local*4+2)*16+lane];
-                float de=values[(local*4+3)*16+lane];
-                bool numericAmbiguous=unsafeFeatures||
-                    !isfinite(nu)||!isfinite(nv)||!isfinite(de);
-                bool ambiguous=numericAmbiguous||fabsf(de)<1e-5f;
-                float sign=de<0?-1.f:1.f,d=sign*de;
-                float u=sign*nu,v=sign*nv;
-                float tolerance=2.f*d;
-                // FP16 is a broad phase only. A near-zero approximate
-                // determinant or non-finite FP16 data is numerically
-                // ambiguous, not proof of a miss. Likewise, approximate t
-                // can flip sign under cancellation, so FP32 below
-                // exclusively owns the depth predicate.
-                if(ambiguous||
-                   (u>=-tolerance&&v>=-tolerance&&
-                    u+v<=d+tolerance)) {
-                    (*broadPassed)++;
-                    if(numericAmbiguous)(*numericFallbacks)++;
-                    float exactT,exactU,exactV;
-                    if(intersectExact(
-                           triangles[triangle],ray,hit->t,
-                           &exactT,&exactU,&exactV))
-                        *hit={exactT,exactU,exactV,triangle};
+                if constexpr(Variant==TensorVariant::Validated) {
+                    float nu=values[(local*4+1)*16+lane];
+                    float nv=values[(local*4+2)*16+lane];
+                    float de=values[(local*4+3)*16+lane];
+                    bool numericAmbiguous=unsafeFeatures||
+                        !isfinite(nu)||!isfinite(nv)||!isfinite(de);
+                    bool ambiguous=numericAmbiguous||fabsf(de)<1e-5f;
+                    float sign=de<0?-1.f:1.f,d=sign*de;
+                    float u=sign*nu,v=sign*nv;
+                    float tolerance=2.f*d;
+                    // FP16 is a broad phase only. A near-zero approximate
+                    // determinant or non-finite FP16 data is numerically
+                    // ambiguous, not proof of a miss. Likewise, approximate
+                    // t can flip sign under cancellation, so FP32 below
+                    // exclusively owns the depth predicate.
+                    if(ambiguous||
+                       (u>=-tolerance&&v>=-tolerance&&
+                        u+v<=d+tolerance)) {
+                        (*broadPassed)++;
+                        if(numericAmbiguous)(*numericFallbacks)++;
+                        float exactT,exactU,exactV;
+                        if(intersectExact(
+                               triangles[triangle],ray,hit->t,
+                               &exactT,&exactU,&exactV))
+                            *hit={exactT,exactU,exactV,triangle};
+                    }
+                } else if constexpr(
+                    Variant==TensorVariant::UvtDepthSorted) {
+                    float nt=values[(local*4+0)*16+lane];
+                    float nu=values[(local*4+1)*16+lane];
+                    float nv=values[(local*4+2)*16+lane];
+                    float de=values[(local*4+3)*16+lane];
+                    if(fabsf(de)>=APPROXIMATE_DETERMINANT_FLOOR) {
+                        float sign=de<0?-1.f:1.f,d=sign*de;
+                        float u=sign*nu,v=sign*nv;
+                        if(u>=0.f&&v>=0.f&&u+v<=d) {
+                            float inverse=1.f/de;
+                            float worldT=(nt*inverse)/frame.scale;
+                            if(worldT>.001f&&worldT<hit->t) {
+                                (*broadPassed)++;
+                                *hit={worldT,nu*inverse,nv*inverse,triangle};
+                            }
+                        }
+                    }
+                } else {
+                    float e0=values[(local*4+0)*16+lane];
+                    float e1=values[(local*4+1)*16+lane];
+                    float e2=values[(local*4+2)*16+lane];
+                    float nt=values[(local*4+3)*16+lane];
+                    float de=e0+e1+e2;
+                    if(fabsf(de)>=APPROXIMATE_DETERMINANT_FLOOR) {
+                        float sign=de<0?-1.f:1.f;
+                        if(sign*e0>=0.f&&sign*e1>=0.f&&sign*e2>=0.f) {
+                            float inverse=1.f/de;
+                            float worldT=(nt*inverse)/frame.scale;
+                            if(worldT>.001f&&worldT<hit->t) {
+                                (*broadPassed)++;
+                                *hit={worldT,e1*inverse,e2*inverse,triangle};
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -367,6 +420,7 @@ __device__ void runTensorLeaf(
     }
 }
 
+template<TensorVariant Variant>
 __global__ void traceTensorWide(
     Hit* output,const Ray* rays,int rayCount,const Triangle* triangles,
     const half* coefficients,const LocalFrame* frames,
@@ -403,7 +457,7 @@ __global__ void traceTensorWide(
                 continue;
             }
             tensorTiles+=(node.count[slot]+3)/4;
-            runTensorLeaf(
+            runTensorLeaf<Variant>(
                 &hit,ray,mask,lane,node.first[slot],node.count[slot],
                 triangles,coefficients,frames,features,values,&broadPassed,
                 &numericFallbacks);
@@ -483,6 +537,7 @@ __global__ void traceMatchedLeaves(
     if(lane<PACKET_RAYS&&pixel<rayCount)output[pixel]=hit;
 }
 
+template<TensorVariant Variant>
 __global__ void traceTensorLeaves(
     Hit* output,const Ray* rays,int rayCount,const Triangle* triangles,
     const half* coefficients,const LocalFrame* frames,
@@ -497,7 +552,7 @@ __global__ void traceTensorLeaves(
     int count=leafCounts[packet];
     for(int leaf=0;leaf<count;leaf++) {
         PacketLeaf task=leaves[packet*MAX_PACKET_LEAVES+leaf];
-        runTensorLeaf(
+        runTensorLeaf<Variant>(
             &hit,ray,task.rayMask,lane,task.first,task.count,triangles,
             coefficients,frames,features,values,&ignored,&ignoredFallbacks);
     }
@@ -748,6 +803,19 @@ static const char* rayModeName(RayMode mode) {
     return mode==RayMode::Primary?"primary":"secondary-diffuse";
 }
 
+static const char* tensorVariantName(TensorVariant variant) {
+    switch(variant) {
+        case TensorVariant::Validated:return "validated";
+        case TensorVariant::UvtDepthSorted:return "uvt-depthsorted";
+        case TensorVariant::E0E1E2:return "e0e1e2";
+    }
+    return "unknown";
+}
+
+static bool tensorVariantIsApproximate(TensorVariant variant) {
+    return variant!=TensorVariant::Validated;
+}
+
 static std::vector<Ray> makePrimaryRays(
     int w,int h,CameraSpec camera,std::vector<int>* originalPixels) {
     Vec3 forward=unit(sub(camera.target,camera.origin));
@@ -827,7 +895,7 @@ bool buildTinyBvh(
 static DeviceScene uploadScene(
     std::vector<Triangle> triangles,std::vector<WideNode>* hostWide,
     double* buildMs,int leafTriangles,BvhBuilder builderChoice,
-    BvhBuildReport* buildReport) {
+    TensorVariant tensorVariant,BvhBuildReport* buildReport) {
     auto begin=std::chrono::steady_clock::now();
     int sourceTriangleCount=int(triangles.size());
     for(int i=0;i<sourceTriangleCount;i++)
@@ -900,11 +968,42 @@ static DeviceScene uploadScene(
             q.c=mul(q.c,frames[batch].scale);
             q.b=mul(q.b,frames[batch].scale);
             Vec3 n=cross(q.c,q.b),pu=cross(q.b,q.a),pv=cross(q.a,q.c);
-            coefficients[size_t(batch)*256+(row+0)*16]=dot(q.a,n);
-            set3(batch,row+0,1,mul(n,-1));
-            set3(batch,row+1,4,pu);set3(batch,row+1,7,mul(q.b,-1));
-            set3(batch,row+2,4,pv);set3(batch,row+2,7,q.c);
-            set3(batch,row+3,4,n);
+            if(tensorVariant==TensorVariant::E0E1E2) {
+                Vec3 v0=q.a,v1=add(q.a,q.c),v2=add(q.a,q.b);
+                // Direct oriented edge rows. Their sum is Delta, while rows
+                // one and two are the u and v barycentric numerators.
+                set3(batch,row+0,4,cross(v1,v2));
+                set3(batch,row+0,7,sub(v2,v1));
+                set3(batch,row+1,4,cross(v2,v0));
+                set3(batch,row+1,7,sub(v0,v2));
+                set3(batch,row+2,4,cross(v0,v1));
+                set3(batch,row+2,7,sub(v1,v0));
+                coefficients[size_t(batch)*256+(row+3)*16]=dot(q.a,n);
+                set3(batch,row+3,1,mul(n,-1));
+            } else {
+                coefficients[size_t(batch)*256+(row+0)*16]=dot(q.a,n);
+                set3(batch,row+0,1,mul(n,-1));
+                set3(batch,row+1,4,pu);
+                set3(batch,row+1,7,mul(q.b,-1));
+                set3(batch,row+2,4,pv);set3(batch,row+2,7,q.c);
+                set3(batch,row+3,4,n);
+            }
+            // A common power-of-two row scale preserves the exact row ratios
+            // before FP16 conversion and reduces subnormal/underflow loss for
+            // small triangles. It needs no per-hit recovery.
+            float* triangleRows=
+                coefficients.data()+size_t(batch)*256+row*16;
+            float maximumCoefficient=0.f;
+            for(int k=0;k<4*16;k++)
+                maximumCoefficient=std::max(
+                    maximumCoefficient,std::fabs(triangleRows[k]));
+            if(maximumCoefficient>0.f&&std::isfinite(maximumCoefficient)) {
+                int exponent=0;
+                std::frexp(maximumCoefficient,&exponent);
+                int shift=std::clamp(-exponent,-120,120);
+                float rowScale=std::ldexp(1.f,shift);
+                for(int k=0;k<4*16;k++)triangleRows[k]*=rowScale;
+            }
         }
         float* batchCoefficients=coefficients.data()+size_t(batch)*256;
         bool unsafe=!std::isfinite(center.x)||!std::isfinite(center.y)||
@@ -915,8 +1014,8 @@ static DeviceScene uploadScene(
                     std::fabs(batchCoefficients[i])>65504.f;
         if(unsafe) {
             std::fill(batchCoefficients,batchCoefficients+256,0.f);
-            // Zero scale marks a coefficient batch that must bypass WMMA
-            // rejection and use FP32 for every ray/triangle pair.
+            // Zero scale marks an unrepresentable coefficient batch. The
+            // validated mode routes it to FP32; no-Moller modes reject it.
             frames[batch]={{0,0,0},0};
             exactOnlyBatches++;
         }
@@ -1048,18 +1147,36 @@ static Timing sampleLaunch(
 }
 
 struct Accuracy {
-    int compared=0,hitMiss=0,primitive=0;
+    int compared=0,hitMiss=0,falsePositive=0,falseNegative=0;
+    int primitive=0,invalid=0;
     float maxAbsT=0,maxRelT=0;
 };
 
 static Accuracy compareHits(
-    const std::vector<Hit>& reference,const std::vector<Hit>& candidate) {
+    const std::vector<Hit>& reference,const std::vector<Hit>& candidate,
+    int triangleCount=-1) {
     Accuracy result{};result.compared=int(reference.size());
     for(size_t i=0;i<reference.size();i++) {
+        if(candidate[i].triangle < -1||
+           (triangleCount>=0&&candidate[i].triangle>=triangleCount)) {
+            result.invalid++;
+            continue;
+        }
         bool a=reference[i].triangle>=0,b=candidate[i].triangle>=0;
-        if(a!=b){result.hitMiss++;continue;}
+        bool invalidValues=b&&
+            (!std::isfinite(candidate[i].t)||
+             !std::isfinite(candidate[i].u)||
+             !std::isfinite(candidate[i].v));
+        if(invalidValues)result.invalid++;
+        if(a!=b) {
+            result.hitMiss++;
+            if(a)result.falseNegative++;
+            else result.falsePositive++;
+            continue;
+        }
         if(!a)continue;
         if(reference[i].triangle!=candidate[i].triangle)result.primitive++;
+        if(invalidValues)continue;
         float absolute=fabsf(reference[i].t-candidate[i].t);
         float relative=absolute/std::max(fabsf(reference[i].t),1e-20f);
         result.maxAbsT=std::max(result.maxAbsT,absolute);
@@ -1078,7 +1195,8 @@ struct BenchResult {
 
 static BenchResult benchmarkMode(
     const DeviceScene& scene,const std::vector<Ray>& rays,
-    const std::vector<int>& originalPixels,int w,int h,int samples) {
+    const std::vector<int>& originalPixels,int w,int h,int samples,
+    TensorVariant tensorVariant) {
     int rayCount=int(rays.size());
     int packets=(rayCount+PACKET_RAYS-1)/PACKET_RAYS;
     int cudaBlocks=(rayCount+CUDA_BLOCK_THREADS-1)/CUDA_BLOCK_THREADS;
@@ -1118,9 +1236,24 @@ static BenchResult benchmarkMode(
             matched,deviceRays,rayCount,scene.triangles,scene.nodes,nullptr);
     };
     auto launchTensor=[&] {
-        traceTensorWide<<<packets,32>>>(
-            tensor,deviceRays,rayCount,scene.triangles,scene.coefficients,
-            scene.frames,scene.nodes,nullptr);
+        switch(tensorVariant) {
+            case TensorVariant::Validated:
+                traceTensorWide<TensorVariant::Validated><<<packets,32>>>(
+                    tensor,deviceRays,rayCount,scene.triangles,
+                    scene.coefficients,scene.frames,scene.nodes,nullptr);
+                break;
+            case TensorVariant::UvtDepthSorted:
+                traceTensorWide<
+                    TensorVariant::UvtDepthSorted><<<packets,32>>>(
+                    tensor,deviceRays,rayCount,scene.triangles,
+                    scene.coefficients,scene.frames,scene.nodes,nullptr);
+                break;
+            case TensorVariant::E0E1E2:
+                traceTensorWide<TensorVariant::E0E1E2><<<packets,32>>>(
+                    tensor,deviceRays,rayCount,scene.triangles,
+                    scene.coefficients,scene.frames,scene.nodes,nullptr);
+                break;
+        }
     };
     auto launchTraversal=[&] {
         collectPacketLeaves<<<packets,32>>>(
@@ -1131,9 +1264,25 @@ static BenchResult benchmarkMode(
             phased,deviceRays,rayCount,scene.triangles,leaves,leafCounts);
     };
     auto launchTensorLeaves=[&] {
-        traceTensorLeaves<<<packets,32>>>(
-            phased,deviceRays,rayCount,scene.triangles,scene.coefficients,
-            scene.frames,leaves,leafCounts);
+        switch(tensorVariant) {
+            case TensorVariant::Validated:
+                traceTensorLeaves<
+                    TensorVariant::Validated><<<packets,32>>>(
+                    phased,deviceRays,rayCount,scene.triangles,
+                    scene.coefficients,scene.frames,leaves,leafCounts);
+                break;
+            case TensorVariant::UvtDepthSorted:
+                traceTensorLeaves<
+                    TensorVariant::UvtDepthSorted><<<packets,32>>>(
+                    phased,deviceRays,rayCount,scene.triangles,
+                    scene.coefficients,scene.frames,leaves,leafCounts);
+                break;
+            case TensorVariant::E0E1E2:
+                traceTensorLeaves<TensorVariant::E0E1E2><<<packets,32>>>(
+                    phased,deviceRays,rayCount,scene.triangles,
+                    scene.coefficients,scene.frames,leaves,leafCounts);
+                break;
+        }
     };
     for(int i=0;i<6;i++) {
         launchTraversal();launchCuda32();launchMatched();launchTensor();
@@ -1179,15 +1328,18 @@ static BenchResult benchmarkMode(
     result.hitCount=int(std::count_if(
         hostMatched.begin(),hostMatched.end(),
         [](const Hit& hit){return hit.triangle>=0;}));
-    result.cuda32Accuracy=compareHits(hostMatched,hostCuda32);
-    result.tensorAccuracy=compareHits(hostMatched,hostTensor);
+    result.cuda32Accuracy=
+        compareHits(hostMatched,hostCuda32,scene.triangleCount);
+    result.tensorAccuracy=
+        compareHits(hostMatched,hostTensor,scene.triangleCount);
     result.cuda32Hits=hostCuda32;
     result.matchedHits=hostMatched;
     result.tensorHits=hostTensor;
     launchTensorLeaves();CUDA_CHECK(cudaDeviceSynchronize());
     CUDA_CHECK(cudaMemcpy(
         hostPhased.data(),phased,rayCount*sizeof(Hit),cudaMemcpyDeviceToHost));
-    result.phasedAccuracy=compareHits(hostMatched,hostPhased);
+    result.phasedAccuracy=
+        compareHits(hostMatched,hostPhased,scene.triangleCount);
 
     constexpr int strata=16;
     int bruteCount=std::min(256,rayCount);
@@ -1232,15 +1384,31 @@ static BenchResult benchmarkMode(
     std::vector<Hit> matchedSubset;
     matchedSubset.reserve(bruteCount);
     for(int index:bruteIndices)matchedSubset.push_back(hostMatched[index]);
-    result.bruteAccuracy=compareHits(hostBrute,matchedSubset);
+    result.bruteAccuracy=
+        compareHits(hostBrute,matchedSubset,scene.triangleCount);
 
     traceCuda32Wide<<<cudaBlocks,CUDA_BLOCK_THREADS>>>(
         cuda32,deviceRays,rayCount,scene.triangles,scene.nodes,cuda32Stats);
     traceMatchedWide<<<packets,32>>>(
         matched,deviceRays,rayCount,scene.triangles,scene.nodes,matchedStats);
-    traceTensorWide<<<packets,32>>>(
-        tensor,deviceRays,rayCount,scene.triangles,scene.coefficients,
-        scene.frames,scene.nodes,tensorStats);
+    switch(tensorVariant) {
+        case TensorVariant::Validated:
+            traceTensorWide<TensorVariant::Validated><<<packets,32>>>(
+                tensor,deviceRays,rayCount,scene.triangles,
+                scene.coefficients,scene.frames,scene.nodes,tensorStats);
+            break;
+        case TensorVariant::UvtDepthSorted:
+            traceTensorWide<
+                TensorVariant::UvtDepthSorted><<<packets,32>>>(
+                tensor,deviceRays,rayCount,scene.triangles,
+                scene.coefficients,scene.frames,scene.nodes,tensorStats);
+            break;
+        case TensorVariant::E0E1E2:
+            traceTensorWide<TensorVariant::E0E1E2><<<packets,32>>>(
+                tensor,deviceRays,rayCount,scene.triangles,
+                scene.coefficients,scene.frames,scene.nodes,tensorStats);
+            break;
+    }
     CUDA_CHECK(cudaMemset(overflow,0,sizeof(int)));
     collectPacketLeaves<<<packets,32>>>(
         deviceRays,rayCount,scene.nodes,leaves,leafCounts,overflow,
@@ -1278,27 +1446,29 @@ static BenchResult benchmarkMode(
 
 static bool accuracyPass(
     const Accuracy& accuracy,bool requireSamePrimitive) {
-    return accuracy.hitMiss==0&&accuracy.maxRelT<1e-4f&&
+    return accuracy.hitMiss==0&&accuracy.invalid==0&&
+           accuracy.maxRelT<1e-4f&&
            (!requireSamePrimitive||accuracy.primitive==0);
 }
 
 static void printAccuracy(const char* label,const Accuracy& accuracy) {
     std::printf(
-        "%s hit/miss=%d primitive=%d max|dt|=%.3g rel=%.3g",
-        label,accuracy.hitMiss,accuracy.primitive,accuracy.maxAbsT,
+        "%s FP/FN=%d/%d primitive=%d invalid=%d max|dt|=%.3g rel=%.3g",
+        label,accuracy.falsePositive,accuracy.falseNegative,
+        accuracy.primitive,accuracy.invalid,accuracy.maxAbsT,
         accuracy.maxRelT);
 }
 
 static void writeRawSamples(
     FILE* output,const char* scene,const char* rayKind,const char* rayOrder,
-    const char* bvhBuilder,int w,int h,int leafTriangles,const char* scope,
-    const Timing& timing) {
+    const char* bvhBuilder,const char* tensorVariant,int w,int h,
+    int leafTriangles,const char* scope,const Timing& timing) {
     if(!output)return;
     for(size_t i=0;i<timing.samples.size();i++)
         std::fprintf(
-            output,"%s,%s,%s,%s,%d,%d,%d,%s,%zu,%.9g\n",
-            scene,rayKind,rayOrder,bvhBuilder,w,h,leafTriangles,scope,i,
-            timing.samples[i]);
+            output,"%s,%s,%s,%s,%s,%d,%d,%d,%s,%zu,%.9g\n",
+            scene,rayKind,rayOrder,bvhBuilder,tensorVariant,w,h,
+            leafTriangles,scope,i,timing.samples[i]);
 }
 
 static std::string fileSlug(std::string value) {
@@ -1317,7 +1487,7 @@ static void writeHitImage(
         triangles.size()*sizeof(Triangle),cudaMemcpyDeviceToHost));
     std::vector<unsigned char> pixels(size_t(w)*h*3,18);
     for(size_t i=0;i<hits.size();i++) {
-        if(hits[i].triangle<0)continue;
+        if(hits[i].triangle<0||hits[i].triangle>=scene.triangleCount)continue;
         int pixel=originalPixels[i];
         int source=triangles[hits[i].triangle].sourcePrimitive;
         unsigned char r,g,b;
@@ -1352,22 +1522,26 @@ static void writeHitImage(
 
 static bool runScene(
     HostScene host,int w,int h,int samples,int leafTriangles,RayMode rayMode,
-    BvhBuilder builderChoice,uint64_t* expectedRayHash,FILE* rawCsv,
+    BvhBuilder builderChoice,TensorVariant tensorVariant,
+    uint64_t* expectedRayHash,FILE* rawCsv,
     const std::string& renderPrefix) {
     std::vector<WideNode> wide;
     double buildMs=0;
     BvhBuildReport buildReport{};
     DeviceScene scene=uploadScene(
         std::move(host.triangles),&wide,&buildMs,leafTriangles,builderChoice,
-        &buildReport);
+        tensorVariant,&buildReport);
     std::printf(
         "\n%s: %d source / %d packed triangles | %s -> BVH8 %d nodes | "
         "%d leaves, logical leaf min/mean/max %d/%.1f/%d | "
-        "build+pack+upload %.1f ms | exact-only coefficient batches=%d\n",
+        "build+pack+upload %.1f ms | %s coefficient batches=%d\n",
         host.name.c_str(),scene.sourceTriangleCount,scene.triangleCount,
         buildReport.name.c_str(),scene.nodeCount,buildReport.leafCount,
         buildReport.minLeafTriangles,buildReport.meanLeafTriangles,
-        buildReport.maxLeafTriangles,buildMs,scene.exactOnlyBatches);
+        buildReport.maxLeafTriangles,buildMs,
+        tensorVariant==TensorVariant::Validated?
+            "exact-only":"unrepresentable/rejected",
+        scene.exactOnlyBatches);
 
     std::vector<int> basePixels;
     std::vector<Ray> baseRays=
@@ -1413,10 +1587,11 @@ static bool runScene(
         std::vector<Ray> rays=baseRays;
         if(packetShuffled)shuffleRays(&rays,&originalPixels);
         BenchResult result=benchmarkMode(
-            scene,rays,originalPixels,w,h,samples);
+            scene,rays,originalPixels,w,h,samples,tensorVariant);
         const char* rayOrder=
             packetShuffled?"packet-shuffled":
             rayMode==RayMode::Primary?"coherent":"pixel-ordered";
+        const char* variantName=tensorVariantName(tensorVariant);
         if(!packetShuffled&&!renderPrefix.empty()) {
             std::string base=renderPrefix+"-"+
                 fileSlug(buildReport.name);
@@ -1424,35 +1599,38 @@ static bool runScene(
                 base+"-cuda32.ppm",result.cuda32Hits,originalPixels,scene,
                 host.name.c_str(),w,h);
             writeHitImage(
-                base+"-cuda16.ppm",result.matchedHits,originalPixels,scene,
+                base+"-cuda-packet16.ppm",result.matchedHits,originalPixels,scene,
                 host.name.c_str(),w,h);
+            std::string tensorSuffix=
+                tensorVariant==TensorVariant::Validated?
+                "-wmma-validated.ppm":"-"+std::string(variantName)+".ppm";
             writeHitImage(
-                base+"-tensor16.ppm",result.tensorHits,originalPixels,scene,
+                base+tensorSuffix,result.tensorHits,originalPixels,scene,
                 host.name.c_str(),w,h);
         }
         writeRawSamples(
             rawCsv,host.name.c_str(),rayModeName(rayMode),rayOrder,
-            buildReport.name.c_str(),w,h,leafTriangles,
+            buildReport.name.c_str(),variantName,w,h,leafTriangles,
             "integrated-cuda32",result.cuda32);
         writeRawSamples(
             rawCsv,host.name.c_str(),rayModeName(rayMode),rayOrder,
-            buildReport.name.c_str(),w,h,leafTriangles,
+            buildReport.name.c_str(),variantName,w,h,leafTriangles,
             "integrated-matched",result.matched);
         writeRawSamples(
             rawCsv,host.name.c_str(),rayModeName(rayMode),rayOrder,
-            buildReport.name.c_str(),w,h,leafTriangles,
+            buildReport.name.c_str(),variantName,w,h,leafTriangles,
             "integrated-tensor",result.tensor);
         writeRawSamples(
             rawCsv,host.name.c_str(),rayModeName(rayMode),rayOrder,
-            buildReport.name.c_str(),w,h,leafTriangles,
+            buildReport.name.c_str(),variantName,w,h,leafTriangles,
             "separated-traversal",result.traversal);
         writeRawSamples(
             rawCsv,host.name.c_str(),rayModeName(rayMode),rayOrder,
-            buildReport.name.c_str(),w,h,leafTriangles,
+            buildReport.name.c_str(),variantName,w,h,leafTriangles,
             "separated-matched-leaves",result.matchedLeaves);
         writeRawSamples(
             rawCsv,host.name.c_str(),rayModeName(rayMode),rayOrder,
-            buildReport.name.c_str(),w,h,leafTriangles,
+            buildReport.name.c_str(),variantName,w,h,leafTriangles,
             "separated-tensor-leaves",result.tensorLeaves);
         float integratedSpeedup=result.cuda32.median/result.tensor.median;
         float matched16Speedup=result.matched.median/result.tensor.median;
@@ -1464,54 +1642,122 @@ static bool runScene(
                     rayOrder,w,h,rays.size());
         std::printf(
             "    integrated: CUDA32 %.4f [%.4f,%.4f] ms | "
-            "CUDA16 %.4f [%.4f,%.4f] ms | "
-            "Tensor16 %.4f [%.4f,%.4f] ms\n",
+            "CUDA-packet16 %.4f [%.4f,%.4f] ms | "
+            "WMMA(F16->F32)/%s %.4f [%.4f,%.4f] ms\n",
             result.cuda32.median,result.cuda32.p10,result.cuda32.p90,
             result.matched.median,result.matched.p10,result.matched.p90,
+            variantName,
             result.tensor.median,result.tensor.p10,result.tensor.p90);
         std::printf(
-            "    speedup: Tensor16 vs tuned CUDA32 %.3fx | "
-            "vs diagnostic CUDA16 %.3fx\n",
+            "    speedup: WMMA vs CUDA32 %.3fx | "
+            "vs diagnostic CUDA-packet16 %.3fx\n",
             integratedSpeedup,matched16Speedup);
         std::printf(
-            "    separated: traversal %.4f ms | CUDA leaves %.4f ms | "
-            "Tensor leaves %.4f ms (%.3fx) | total %.4f/%.4f ms\n",
+            "    separated fixed-work: traversal %.4f ms | CUDA leaves "
+            "%.4f ms | WMMA leaves %.4f ms (%.3fx) | diagnostic sum "
+            "%.4f/%.4f ms\n",
             result.traversal.median,result.matchedLeaves.median,
             result.tensorLeaves.median,leafSpeedup,matchedPhased,tensorPhased);
         double raysCount=rays.size();
-        std::printf(
-            "    workload: %.2f nodes/ray %.2f leaves/ray "
-            "%.1f triangle tests/ray | Tensor exact %.1f/ray | "
-            "numeric fallbacks=%llu | hits=%d | packet leaves max=%d "
-            "overflow=%d | CUDA32 stack overflow=%llu\n",
-            double(result.cuda32Stats.nodeVisits)/raysCount,
-            double(result.cuda32Stats.rayLeafVisits)/raysCount,
-            double(result.cuda32Stats.triangleTests)/raysCount,
-            double(result.tensorStats.exactTests)/raysCount,
-            result.tensorStats.numericFallbacks,result.hitCount,
-            result.maxLeaves,result.overflow,
-            result.cuda32Stats.stackOverflows);
+        if(tensorVariant==TensorVariant::Validated)
+            std::printf(
+                "    CUDA32 work: %.2f nodes/ray %.2f leaves/ray "
+                "%.1f triangle tests/ray | WMMA survivors to Moller %.1f/ray | "
+                "numeric fallbacks=%llu | hits=%d | packet leaves max=%d "
+                "overflow=%d | CUDA32 stack overflow=%llu\n",
+                double(result.cuda32Stats.nodeVisits)/raysCount,
+                double(result.cuda32Stats.rayLeafVisits)/raysCount,
+                double(result.cuda32Stats.triangleTests)/raysCount,
+                double(result.tensorStats.exactTests)/raysCount,
+                result.tensorStats.numericFallbacks,result.hitCount,
+                result.maxLeaves,result.overflow,
+                result.cuda32Stats.stackOverflows);
+        else
+            std::printf(
+                "    CUDA32 work: %.2f nodes/ray %.2f leaves/ray "
+                "%.1f triangle tests/ray\n"
+                "    WMMA work: %.2f leaves/ray %.1f triangle pairs/ray | "
+                "depth updates %.2f/ray | "
+                "Moller checks=0 | reference hits=%d | packet leaves max=%d "
+                "overflow=%d | CUDA32 stack overflow=%llu\n",
+                double(result.cuda32Stats.nodeVisits)/raysCount,
+                double(result.cuda32Stats.rayLeafVisits)/raysCount,
+                double(result.cuda32Stats.triangleTests)/raysCount,
+                double(result.tensorStats.rayLeafVisits)/raysCount,
+                double(result.tensorStats.triangleTests)/raysCount,
+                double(result.tensorStats.exactTests)/raysCount,
+                result.hitCount,result.maxLeaves,result.overflow,
+                result.cuda32Stats.stackOverflows);
         std::printf("    correctness: ");
         printAccuracy("CUDA32",result.cuda32Accuracy);
         std::printf(" | ");
-        printAccuracy("tensor",result.tensorAccuracy);
+        printAccuracy("WMMA",result.tensorAccuracy);
         std::printf(" | ");
         printAccuracy("phased",result.phasedAccuracy);
         std::printf(" | ");
         printAccuracy("BVH/brute-256",result.bruteAccuracy);
-        // Every released correctness path requires the same primitive.
-        // Legitimate equal-depth ties should be diagnosed explicitly rather
-        // than allowing every primitive mismatch through this gate.
+        if(tensorVariantIsApproximate(tensorVariant))
+            std::printf(
+                " | approximate rates FP/rays=%.4f%% FN/reference-hits="
+                "%.4f%% wrong-primitive/reference-hits=%.4f%%",
+                100.*result.tensorAccuracy.falsePositive/raysCount,
+                100.*result.tensorAccuracy.falseNegative/
+                    std::max(1,result.hitCount),
+                100.*result.tensorAccuracy.primitive/
+                    std::max(1,result.hitCount));
+        // Approximate variants report image disagreement without treating it
+        // as a harness failure. Baseline correctness, finite/index-safe Tensor
+        // output, and traversal integrity remain mandatory.
         bool modePass=accuracyPass(result.cuda32Accuracy,true)&&
-                      accuracyPass(result.tensorAccuracy,true)&&
-                      accuracyPass(result.phasedAccuracy,true)&&
                       accuracyPass(result.bruteAccuracy,true)&&
                       !result.overflow&&!result.cuda32Stats.stackOverflows;
-        if(host.name=="RegressionTinyFar")
+        if(tensorVariant==TensorVariant::Validated)
+            modePass&=accuracyPass(result.tensorAccuracy,true)&&
+                      accuracyPass(result.phasedAccuracy,true);
+        else
+            modePass&=!result.tensorAccuracy.invalid&&
+                      !result.phasedAccuracy.invalid&&
+                      (!result.hitCount||
+                       (result.tensorAccuracy.falseNegative<result.hitCount&&
+                        result.phasedAccuracy.falseNegative<result.hitCount));
+        if(host.name=="RegressionTinyFar"&&
+           tensorVariant==TensorVariant::Validated)
             modePass&=result.hitCount>0&&
                       result.tensorStats.numericFallbacks>=4;
+        if(host.name=="RegressionDepthSorted")
+            modePass&=result.hitCount>0&&
+                      result.tensorAccuracy.hitMiss==0&&
+                      result.tensorAccuracy.primitive==0&&
+                      result.tensorAccuracy.invalid==0&&
+                      result.tensorAccuracy.maxRelT<.02f&&
+                      result.phasedAccuracy.hitMiss==0&&
+                      result.phasedAccuracy.primitive==0&&
+                      result.phasedAccuracy.invalid==0&&
+                      result.phasedAccuracy.maxRelT<.02f;
+        if(host.name=="RegressionDepthClip")
+            modePass&=result.hitCount>0&&
+                      result.tensorAccuracy.hitMiss==0&&
+                      result.tensorAccuracy.primitive==0&&
+                      result.tensorAccuracy.invalid==0&&
+                      result.tensorAccuracy.maxRelT<.02f&&
+                      result.phasedAccuracy.hitMiss==0&&
+                      result.phasedAccuracy.primitive==0&&
+                      result.phasedAccuracy.invalid==0&&
+                      result.phasedAccuracy.maxRelT<.02f;
+        // This fixture has a guaranteed near/far two-leaf topology only for
+        // the built-in builder at leaf size four. Other configurations still
+        // check Tensor depth, but cannot assert a particular pruning count.
+        if(host.name=="RegressionDepthClip"&&leafTriangles==4&&
+           builderChoice==BvhBuilder::BuiltinSah)
+            modePass&=result.tensorStats.rayLeafVisits<
+                          result.traversalStats.rayLeafVisits&&
+                      result.matchedStats.rayLeafVisits<
+                          result.traversalStats.rayLeafVisits;
         passed&=modePass;
-        std::printf(" => %s\n",modePass?"PASS":"FAIL");
+        std::printf(
+            " => %s%s\n",modePass?"PASS":"FAIL",
+            tensorVariantIsApproximate(tensorVariant)?
+            " (approximate accuracy is informational)":"");
     }
     freeScene(&scene);
     return passed;
@@ -1569,6 +1815,38 @@ static HostScene makeTinyFarRegressionScene() {
     return scene;
 }
 
+static HostScene makeDepthSortedRegressionScene() {
+    HostScene scene{};
+    scene.name="RegressionDepthSorted";
+    auto addTriangle=[&](float z) {
+        Vec3 a{-.8f,-.8f,z},c{.8f,-.8f,z},b{0,.8f,z};
+        scene.triangles.push_back({a,sub(c,a),sub(b,a)});
+    };
+    // Deliberately store the farther triangle first. Tensor depth must replace
+    // it with the second triangle in the same leaf.
+    addTriangle(0.f);
+    addTriangle(.25f);
+    scene.camera={{0,0,2},{0,0,0},{0,1,0}};
+    return scene;
+}
+
+static HostScene makeDepthClipRegressionScene() {
+    HostScene scene{};
+    scene.name="RegressionDepthClip";
+    auto addLayer=[&](float z) {
+        for(int i=0;i<4;i++) {
+            Vec3 a{-.8f,-.8f,z},c{.8f,-.8f,z},b{0,.8f,z};
+            scene.triangles.push_back({a,sub(c,a),sub(b,a)});
+        }
+    };
+    // Looking in +Z makes the SAH leaf order near-to-far. The near layer must
+    // set world-space hit.t so the later far leaf is rejected by its AABB.
+    addLayer(-.25f);
+    addLayer(.25f);
+    scene.camera={{0,0,-2},{0,0,0},{0,1,0}};
+    return scene;
+}
+
 static bool inputAvailable(const char* path) {
     if(!path||!*path)return false;
     std::ifstream input(path,std::ios::binary);
@@ -1585,14 +1863,20 @@ static void printUsage(const char* executable) {
         "  --candidate-rich        alias for --leaf 256\n"
         "  --leaf-sweep            run 4,8,16,32,64,128,256\n"
         "  --ray-mode MODE         primary or secondary\n"
+        "  --variant NAME          validated (default mixed-WMMA filter +\n"
+        "                          FP32 Moller-Trumbore), uvt-depthsorted, or\n"
+        "                          e0e1e2\n"
+        "                          (the last two are no-Moller, Tensor-owned,\n"
+        "                          and intentionally approximate)\n"
         "  --bvh BUILDER           builtin, tinybvh-sah, or tinybvh-sbvh\n"
         "  --bvh-sweep             run builtin and both TinyBVH builders\n"
-        "  --render-prefix PATH    write CUDA32/CUDA16/Tensor PPM images\n"
+        "  --render-prefix PATH    write CUDA32/CUDA-packet16/WMMA PPM images\n"
         "  --raw-csv FILE          write every CUDA-event sample\n"
-        "  --scene NAME            Grid, CheckerLow/Mid/High, Sibenik,\n"
+        "  --scene NAME            Grid, CoastalCliffLow/Mid/High, Sibenik,\n"
         "                          Sponza, or SanMiguel\n"
         "                          (RegressionOdd5/6/7 and\n"
-        "                           RegressionTinyFar are test fixtures)\n"
+        "                          RegressionTinyFar/DepthSorted/DepthClip\n"
+        "                          are fixtures)\n"
         "  --include-sanmiguel     add SanMiguel to the default suite\n"
         "  --help                  show this help\n"
         "  --version               show the version\n",
@@ -1606,6 +1890,7 @@ int main(int argc,char** argv) {
     bool leafSweep=false;
     bool bvhSweep=false;
     RayMode rayMode=RayMode::Primary;
+    TensorVariant tensorVariant=TensorVariant::Validated;
     BvhBuilder bvhBuilder=BvhBuilder::BuiltinSah;
     std::string only,rawCsvPath,renderPrefix;
     for(int i=1;i<argc;i++) {
@@ -1629,6 +1914,17 @@ int main(int argc,char** argv) {
                 rayMode=RayMode::Secondary;
             else return std::fprintf(
                 stderr,"Ray mode must be primary or secondary\n"),2;
+        }
+        else if(!std::strcmp(argv[i],"--variant")&&i+1<argc) {
+            const char* value=argv[++i];
+            if(!std::strcmp(value,"validated"))
+                tensorVariant=TensorVariant::Validated;
+            else if(!std::strcmp(value,"uvt-depthsorted"))
+                tensorVariant=TensorVariant::UvtDepthSorted;
+            else if(!std::strcmp(value,"e0e1e2"))
+                tensorVariant=TensorVariant::E0E1E2;
+            else return std::fprintf(
+                stderr,"Unknown WMMA variant: %s\n",value),2;
         }
         else if(!std::strcmp(argv[i],"--bvh")&&i+1<argc) {
             const char* value=argv[++i];
@@ -1678,13 +1974,15 @@ int main(int argc,char** argv) {
     std::printf(
         "RayMMA %s (%s) on %s, compute %d.%d\n"
         "CUDA driver API %d.%d, runtime %d.%d\n"
-        "%s -> BVH8, <=%d-triangle leaves, %s rays, %d samples\n",
+        "%s -> BVH8, <=%d-triangle leaves, %s rays, WMMA variant=%s, "
+        "%d samples\n",
         RAYMMA_VERSION,RAYMMA_BUILD_CONFIG,
         properties.name,properties.major,properties.minor,
         driverVersion/1000,(driverVersion%1000)/10,
         runtimeVersion/1000,(runtimeVersion%1000)/10,
         bvhSweep?"BVH builder sweep":bvhBuilderName(bvhBuilder),
-        leafTriangles,rayModeName(rayMode),samples);
+        leafTriangles,rayModeName(rayMode),tensorVariantName(tensorVariant),
+        samples);
     if((bvhSweep||bvhBuilder!=BvhBuilder::BuiltinSah)&&
        !tinyBvhAvailable())
         return std::fprintf(
@@ -1705,17 +2003,21 @@ int main(int argc,char** argv) {
         loaders.push_back([]{return makeOddLeafRegressionScene(7);});
     if(only=="RegressionTinyFar")
         loaders.push_back([]{return makeTinyFarRegressionScene();});
-    if(inputAvailable(CHECKER_LOW_PATH))
-        add("CheckerLow",[]{return loadBrtri(
-            CHECKER_LOW_PATH,"CheckerLow",
+    if(only=="RegressionDepthSorted")
+        loaders.push_back([]{return makeDepthSortedRegressionScene();});
+    if(only=="RegressionDepthClip")
+        loaders.push_back([]{return makeDepthClipRegressionScene();});
+    if(inputAvailable(COASTAL_CLIFF_LOW_PATH))
+        add("CoastalCliffLow",[]{return loadBrtri(
+            COASTAL_CLIFF_LOW_PATH,"CoastalCliffLow",
             {{.8f,1.15f,2.05f},{0,0,0},{0,1,0}});});
-    if(inputAvailable(CHECKER_MID_PATH))
-        add("CheckerMid",[]{return loadBrtri(
-            CHECKER_MID_PATH,"CheckerMid",
+    if(inputAvailable(COASTAL_CLIFF_MID_PATH))
+        add("CoastalCliffMid",[]{return loadBrtri(
+            COASTAL_CLIFF_MID_PATH,"CoastalCliffMid",
             {{.8f,1.15f,2.05f},{0,0,0},{0,1,0}});});
-    if(inputAvailable(CHECKER_HIGH_PATH))
-        add("CheckerHigh",[]{return loadBrtri(
-            CHECKER_HIGH_PATH,"CheckerHigh",
+    if(inputAvailable(COASTAL_CLIFF_HIGH_PATH))
+        add("CoastalCliffHigh",[]{return loadBrtri(
+            COASTAL_CLIFF_HIGH_PATH,"CoastalCliffHigh",
             {{.8f,1.15f,2.05f},{0,0,0},{0,1,0}});});
     if(inputAvailable(SIBENIK_PATH))
         add("Sibenik",[]{return loadObj(
@@ -1740,7 +2042,7 @@ int main(int argc,char** argv) {
                 stderr,"Cannot open raw CSV: %s\n",rawCsvPath.c_str()),2;
         std::fprintf(
             rawCsv,
-            "scene,ray_kind,ray_order,bvh_builder,width,height,"
+            "scene,ray_kind,ray_order,bvh_builder,tensor_variant,width,height,"
             "max_leaf_triangles,"
             "timing_scope,sample_index,milliseconds\n");
     }
@@ -1758,15 +2060,20 @@ int main(int argc,char** argv) {
             if(leafSweep) {
                 for(int leaf:{4,8,16,32,64,128,256})
                     passed&=runScene(
-                        loader(),w,h,samples,leaf,rayMode,builder,
+                        loader(),w,h,samples,leaf,rayMode,builder,tensorVariant,
                         &expectedRayHash,rawCsv,renderPrefix);
             } else {
                 passed&=runScene(
                     loader(),w,h,samples,leafTriangles,rayMode,builder,
+                    tensorVariant,
                     &expectedRayHash,rawCsv,renderPrefix);
             }
     }
     if(rawCsv)std::fclose(rawCsv);
-    std::printf("\nresearch suite => %s\n",passed?"PASS":"FAIL");
+    if(tensorVariantIsApproximate(tensorVariant))
+        std::printf(
+            "\nresearch harness => %s (approximate image accuracy is "
+            "reported above)\n",passed?"PASS":"FAIL");
+    else std::printf("\nresearch suite => %s\n",passed?"PASS":"FAIL");
     return passed?0:1;
 }

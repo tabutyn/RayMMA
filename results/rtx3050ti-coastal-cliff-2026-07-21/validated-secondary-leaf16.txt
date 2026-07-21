@@ -1,0 +1,68 @@
+RayMMA 0.1.0 (Release) on NVIDIA GeForce RTX 3050 Ti Laptop GPU, compute 8.6
+CUDA driver API 13.1, runtime 13.1
+builtin-binned-SAH -> BVH8, <=16-triangle leaves, secondary-diffuse rays, WMMA variant=validated, 9 samples
+
+Grid: 32768 source / 32768 packed triangles | builtin-binned-SAH -> BVH8 619 nodes | 2613 leaves, logical leaf min/mean/max 4/12.5/16 | build+pack+upload 380.3 ms | exact-only coefficient batches=0
+  rays: secondary-diffuse, 3263 active of 36864 camera samples | set hash 3d0b7ad6a70c175a (primary trace + deterministic cosine bounce setup 2.02 ms, excluded from trace timing)
+  pixel-ordered   256x144 (3263 rays)
+    integrated: CUDA32 0.4700 [0.4648,0.4741] ms | CUDA-packet16 0.7516 [0.7393,0.7556] ms | WMMA(F16->F32)/validated 0.9625 [0.9574,0.9656] ms
+    speedup: WMMA vs CUDA32 0.488x | vs diagnostic CUDA-packet16 0.781x
+    separated fixed-work: traversal 0.5598 ms | CUDA leaves 0.3072 ms | WMMA leaves 0.5407 ms (0.568x) | diagnostic sum 0.8670/1.1005 ms
+    CUDA32 work: 6.03 nodes/ray 2.31 leaves/ray 30.6 triangle tests/ray | WMMA survivors to Moller 19.2/ray | numeric fallbacks=0 | hits=637 | packet leaves max=79 overflow=0 | CUDA32 stack overflow=0
+    correctness: CUDA32 FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | WMMA FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | phased FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | BVH/brute-256 FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 => PASS
+  packet-shuffled 256x144 (3263 rays)
+    integrated: CUDA32 0.4772 [0.4751,0.4812] ms | CUDA-packet16 0.8785 [0.8673,0.8858] ms | WMMA(F16->F32)/validated 1.1121 [1.0893,1.1244] ms
+    speedup: WMMA vs CUDA32 0.429x | vs diagnostic CUDA-packet16 0.790x
+    separated fixed-work: traversal 0.7383 ms | CUDA leaves 0.3348 ms | WMMA leaves 0.5519 ms (0.607x) | diagnostic sum 1.0732/1.2902 ms
+    CUDA32 work: 6.03 nodes/ray 2.31 leaves/ray 30.6 triangle tests/ray | WMMA survivors to Moller 19.2/ray | numeric fallbacks=0 | hits=637 | packet leaves max=82 overflow=0 | CUDA32 stack overflow=0
+    correctness: CUDA32 FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | WMMA FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | phased FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | BVH/brute-256 FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 => PASS
+loaded CoastalCliffLow      8516 triangles
+
+CoastalCliffLow: 8516 source / 8516 packed triangles | builtin-binned-SAH -> BVH8 260 nodes | 713 leaves, logical leaf min/mean/max 4/11.9/16 | build+pack+upload 95.2 ms | exact-only coefficient batches=0
+  rays: secondary-diffuse, 966 active of 36864 camera samples | set hash 77be39a8878c3c47 (primary trace + deterministic cosine bounce setup 1.45 ms, excluded from trace timing)
+  pixel-ordered   256x144 (966 rays)
+    integrated: CUDA32 0.1741 [0.1669,0.1761] ms | CUDA-packet16 0.2887 [0.2876,0.2939] ms | WMMA(F16->F32)/validated 0.3645 [0.3582,0.3683] ms
+    speedup: WMMA vs CUDA32 0.478x | vs diagnostic CUDA-packet16 0.792x
+    separated fixed-work: traversal 0.1731 ms | CUDA leaves 0.1485 ms | WMMA leaves 0.1985 ms (0.748x) | diagnostic sum 0.3215/0.3715 ms
+    CUDA32 work: 4.61 nodes/ray 2.28 leaves/ray 28.4 triangle tests/ray | WMMA survivors to Moller 17.5/ray | numeric fallbacks=0 | hits=98 | packet leaves max=52 overflow=0 | CUDA32 stack overflow=0
+    correctness: CUDA32 FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | WMMA FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | phased FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | BVH/brute-256 FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 => PASS
+  packet-shuffled 256x144 (966 rays)
+    integrated: CUDA32 0.1864 [0.1782,0.1905] ms | CUDA-packet16 0.3450 [0.3430,0.3523] ms | WMMA(F16->F32)/validated 0.4300 [0.4250,0.4321] ms
+    speedup: WMMA vs CUDA32 0.433x | vs diagnostic CUDA-packet16 0.802x
+    separated fixed-work: traversal 0.2191 ms | CUDA leaves 0.1635 ms | WMMA leaves 0.2234 ms (0.732x) | diagnostic sum 0.3827/0.4425 ms
+    CUDA32 work: 4.61 nodes/ray 2.28 leaves/ray 28.4 triangle tests/ray | WMMA survivors to Moller 17.5/ray | numeric fallbacks=0 | hits=98 | packet leaves max=58 overflow=0 | CUDA32 stack overflow=0
+    correctness: CUDA32 FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | WMMA FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | phased FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | BVH/brute-256 FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 => PASS
+loaded CoastalCliffMid     71312 triangles
+
+CoastalCliffMid: 71312 source / 71312 packed triangles | builtin-binned-SAH -> BVH8 2154 nodes | 5944 leaves, logical leaf min/mean/max 4/12.0/16 | build+pack+upload 982.2 ms | exact-only coefficient batches=0
+  rays: secondary-diffuse, 970 active of 36864 camera samples | set hash e9bc4c82a653ac43 (primary trace + deterministic cosine bounce setup 1.47 ms, excluded from trace timing)
+  pixel-ordered   256x144 (970 rays)
+    integrated: CUDA32 0.4413 [0.3604,0.4432] ms | CUDA-packet16 0.7513 [0.7444,0.8561] ms | WMMA(F16->F32)/validated 0.9984 [0.9923,1.0025] ms
+    speedup: WMMA vs CUDA32 0.442x | vs diagnostic CUDA-packet16 0.752x
+    separated fixed-work: traversal 0.4690 ms | CUDA leaves 0.2324 ms | WMMA leaves 0.4680 ms (0.497x) | diagnostic sum 0.7014/0.9370 ms
+    CUDA32 work: 6.39 nodes/ray 2.30 leaves/ray 29.0 triangle tests/ray | WMMA survivors to Moller 16.8/ray | numeric fallbacks=0 | hits=106 | packet leaves max=84 overflow=0 | CUDA32 stack overflow=0
+    correctness: CUDA32 FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | WMMA FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | phased FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | BVH/brute-256 FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 => PASS
+  packet-shuffled 256x144 (970 rays)
+    integrated: CUDA32 0.3369 [0.2857,0.3400] ms | CUDA-packet16 0.5335 [0.5243,0.6040] ms | WMMA(F16->F32)/validated 0.6817 [0.6738,0.6830] ms
+    speedup: WMMA vs CUDA32 0.494x | vs diagnostic CUDA-packet16 0.783x
+    separated fixed-work: traversal 0.4134 ms | CUDA leaves 0.1905 ms | WMMA leaves 0.3871 ms (0.492x) | diagnostic sum 0.6038/0.8004 ms
+    CUDA32 work: 6.39 nodes/ray 2.30 leaves/ray 29.0 triangle tests/ray | WMMA survivors to Moller 16.8/ray | numeric fallbacks=0 | hits=106 | packet leaves max=67 overflow=0 | CUDA32 stack overflow=0
+    correctness: CUDA32 FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | WMMA FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | phased FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | BVH/brute-256 FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 => PASS
+loaded CoastalCliffHigh    461824 triangles
+
+CoastalCliffHigh: 461824 source / 461824 packed triangles | builtin-binned-SAH -> BVH8 12809 nodes | 38270 leaves, logical leaf min/mean/max 4/12.1/16 | build+pack+upload 7460.1 ms | exact-only coefficient batches=0
+  rays: secondary-diffuse, 970 active of 36864 camera samples | set hash 494fc142108346e5 (primary trace + deterministic cosine bounce setup 1.70 ms, excluded from trace timing)
+  pixel-ordered   256x144 (970 rays)
+    integrated: CUDA32 0.6728 [0.6554,0.6738] ms | CUDA-packet16 1.0977 [1.0893,1.1356] ms | WMMA(F16->F32)/validated 1.2625 [1.2534,1.2654] ms
+    speedup: WMMA vs CUDA32 0.533x | vs diagnostic CUDA-packet16 0.869x
+    separated fixed-work: traversal 0.7352 ms | CUDA leaves 0.3082 ms | WMMA leaves 0.5632 ms (0.547x) | diagnostic sum 1.0435/1.2984 ms
+    CUDA32 work: 7.95 nodes/ray 1.98 leaves/ray 25.2 triangle tests/ray | WMMA survivors to Moller 13.1/ray | numeric fallbacks=0 | hits=109 | packet leaves max=79 overflow=0 | CUDA32 stack overflow=0
+    correctness: CUDA32 FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | WMMA FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | phased FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | BVH/brute-256 FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 => PASS
+  packet-shuffled 256x144 (970 rays)
+    integrated: CUDA32 0.5335 [0.5140,0.5352] ms | CUDA-packet16 0.9510 [0.9482,1.0127] ms | WMMA(F16->F32)/validated 1.0926 [1.0739,1.0947] ms
+    speedup: WMMA vs CUDA32 0.488x | vs diagnostic CUDA-packet16 0.870x
+    separated fixed-work: traversal 0.6397 ms | CUDA leaves 0.2609 ms | WMMA leaves 0.4677 ms (0.558x) | diagnostic sum 0.9006/1.1074 ms
+    CUDA32 work: 7.95 nodes/ray 1.98 leaves/ray 25.2 triangle tests/ray | WMMA survivors to Moller 13.1/ray | numeric fallbacks=0 | hits=109 | packet leaves max=86 overflow=0 | CUDA32 stack overflow=0
+    correctness: CUDA32 FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | WMMA FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | phased FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 | BVH/brute-256 FP/FN=0/0 primitive=0 invalid=0 max|dt|=0 rel=0 => PASS
+
+research suite => PASS

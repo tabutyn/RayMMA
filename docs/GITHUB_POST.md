@@ -1,73 +1,57 @@
-# The Tensor Core ray-tracing speedup that nearly disappeared
+# LinkedIn post
 
-> Draft. The hardened Grid spot check includes raw samples; the larger
-> historical Checker/Sponza figures did not retain raw evidence and are
-> presented only as the path that motivated the current controls.
+Can NVIDIA Tensor Cores accelerate ray–triangle intersection?
 
-I started RayMMA with a simple question: could NVIDIA Tensor Cores accelerate
-ray/triangle intersection if the algebra were arranged as dense matrix
-multiplication?
+I built RayMMA to find out—and the most useful result was learning exactly
+where they do not win.
 
-The first result looked exciting. On a high-detail scene, my Tensor path
-appeared materially faster than a CUDA reference. Then I made the reference
-fairer, added a stronger BVH, tested a larger scene, and found six wrong
-closest hits caused by an over-aggressive FP16 filter. The headline speedup
-nearly disappeared.
+RayMMA maps 4 triangles × 16 rays into an `m16n16k16` WMMA operation: 64
+candidate intersections per Tensor Core tile, with FP16 inputs and FP32
+accumulation.
 
-That failure became the useful result.
+To test it honestly, I also built:
 
-## The method
+- an independent-ray CUDA32 Möller–Trumbore baseline;
+- a matched 16-ray CUDA packet diagnostic;
+- shared SAH/BVH8 traversal and candidate ordering;
+- Tensor-derived barycentrics, closest depth, and BVH clipping;
+- coherent, shuffled, and secondary-ray workloads; and
+- raw CUDA-event timing plus hit, primitive, and depth validation.
 
-RayMMA separates the intersection equations into triangle-only coefficients
-and ray-only features. One FP16 `m16n16k16` WMMA tile evaluates four values for
-every pair in a group of four triangles and sixteen rays: 64 candidate pairs
-per tile.
+The result on an RTX 3050 Ti Laptop GPU:
 
-WMMA is only a filter. Candidate pairs are re-evaluated with FP32
-Möller–Trumbore, which owns the final hit and closest-depth decision.
+- With selective 16-triangle BVH leaves, CUDA32 won every primary and
+  secondary comparison on the new 461,824-triangle CC0 scene.
+- With deliberately dense 256-triangle leaves, the no-Möller Tensor modes
+  reached 1.07–1.29× the same-tree CUDA32 performance.
+- That speed came with measurable approximation: 2–3 missed hits out of 970,
+  3–5 wrong closest primitives, and up to 3.28% relative depth error.
+- The exact validated Tensor/CUDA hybrid crossed CUDA32 in some coarse cases,
+  but the best selective CUDA32 configuration was still about 7.8× faster for
+  coherent rays and 3.3× faster for shuffled rays.
 
-The benchmark feeds both Tensor and CUDA paths the same uncompressed
-SAH-split BVH8, triangle order, 16-ray packets, rays, leaf size, and final
-predicate.
+So the conclusion is not “Tensor Cores beat ray tracing.” It is narrower and,
+I think, more useful:
 
-## What survived stronger controls
+Dense ray/triangle arithmetic can benefit from Tensor Cores, but candidate
+generation and BVH selectivity dominate the complete system. A faster leaf
+kernel is not automatically a faster tracer.
 
-In the hardened, raw-sample-backed procedural Grid run on an RTX 3050 Ti:
+The project also forced me into the details I enjoy most: warp-level data
+layout, mixed-precision numerical behavior, coordinate normalization,
+closest-hit depth propagation, traversal correctness, benchmark design, and
+GPU driver/device debugging.
 
-- at a maximum leaf size of 256, Tensor was 3.9% slower for coherent primary
-  rays;
-- for the same rays deterministically shuffled across packets, Tensor was
-  4.7% faster; and
-- the separated Tensor leaf stage was slower in both orders.
+All 15 tests pass. The repository includes the CUDA source, both approximate
+variants, exact source and asset hashes, raw samples, complete transcripts,
+REUSE 3.3 licensing, and the negative results—not just the favorable numbers.
 
-These kernel times exclude BVH construction, Tensor coefficient/local-frame
-packing, allocation, and upload.
+This is the kind of GPU systems engineering work I want to keep doing.
 
-So the bounded finding is not “Tensor Cores beat ray tracing.” It is:
+Repository: https://github.com/tabutyn/RayMMA
 
-> Dense candidate processing can show a narrow WMMA crossover for some packet
-> orderings, but the current method does not provide a robust renderer-level
-> win.
+I would be glad to compare results with anyone working on CUDA, ray tracing,
+Tensor Core scheduling, or compacted ray work queues—especially on newer GPU
+architectures.
 
-The next question is whether compaction can assemble dense ray/leaf tiles
-without weakening the BVH.
-
-The repository includes the Grid run's raw CUDA-event samples, unmodified
-console output, checksums, and sanitized environment metadata in the
-[evidence bundle](../results/rtx3050ti-grid-2026-07-19/README.md).
-
-## Why I am publishing the negative parts
-
-The repository includes the false-negative investigation, matched controls,
-phase timing, correctness checks, and the limitations that still block a
-paper-level claim.
-
-This is currently a one-GPU research artifact. The current harness adds real
-first-bounce diffuse rays, an independent-ray CUDA32 control, and optional
-TinyBVH SAH/spatial-split controls. On the RTX 3050 Ti quick sweep, CUDA32 was
-faster than Tensor in every tested primary and secondary Grid case. The FP16
-envelope still has no formal bound, and A100/H100 results remain outstanding.
-
-If you have a different GPU generation or experience with compacted ray work
-queues, I would value reproducible result submissions: exact commit, raw
-samples, environment, scene hash, and correctness counters included.
+#CUDA #GPUComputing #RayTracing #TensorCores #SystemsEngineering #NVIDIA

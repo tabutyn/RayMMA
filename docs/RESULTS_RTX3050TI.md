@@ -1,24 +1,30 @@
-# RayMMA results on an RTX 3050 Ti
+# Historical RayMMA results on an RTX 3050 Ti
 
-## Hardened release-candidate spot check
+> **Evidence warning:** most tables below have no retained raw samples, exact
+> source identity, or scene hashes. The one raw Grid bundle comes from a
+> pre-public source tree and compares only the validated hybrid with matched
+> CUDA-packet16 (`CUDA16` in its archived output). Use
+> [Findings and evidence](RESULTS.md) for the current conclusion.
 
-The current procedural Grid evidence is archived with raw samples in
+## Provisional raw matched-packet spot check
+
+The procedural Grid bundle is retained with raw samples in
 [`results/rtx3050ti-grid-2026-07-19`](../results/rtx3050ti-grid-2026-07-19/README.md).
-At a maximum leaf size of 256, the integrated Tensor path measured 0.961x
-matched CUDA for coherent rays and 1.047x for packet-shuffled primary rays.
-Both passed the strict release correctness gate.
+At a maximum leaf size of 256, the integrated validated hybrid measured 0.961x
+versus matched CUDA-packet16 for coherent rays and 1.047x for packet-shuffled
+primary rays. Both passed the checks implemented by that development revision.
 
-That current result is narrow and ray-order dependent. It replaces the older
-1.21x figure as the public release headline.
+That result is narrow, ray-order dependent, and not a CUDA32 comparison. It is
+retained only as historical context; current claims use the newer raw bundles.
 
 ## Historical exploratory snapshot
 
 The remainder of this document is an exploratory single-GPU snapshot, not a
 cross-architecture performance claim. The recorded run predates the release
 harness's 16-by-16 image-stratified brute-force sampling; it checked the first
-256 rays in each ordering. Raw samples were not retained. The release harness
+256 rays in each ordering. Raw samples were not retained. The current harness
 also fixes a four-triangle leaf-alignment bug and adds FP16 range fallbacks, so
-rerun every table from the release commit before tagging `v0.1.0`.
+these tables are not used as current release evidence.
 
 ## Question
 
@@ -36,14 +42,15 @@ interactive lab. It uses:
 - tested maximum leaf sizes of 4–256 triangles, with four-triangle-aligned
   starts for WMMA;
 - the same BVH, triangle order, rays, FP32 final predicate, and hit output for
-  Matched CUDA and Tensor;
+  matched CUDA-packet16 and the validated hybrid;
 - coherent primary-ray order and an exactly identical ray set shuffled across
   16-ray packets;
 - a separate two-kernel mode that first records packet/leaf intersections and
-  then times CUDA or Tensor leaf processing on exactly the same recorded work;
+  then times CUDA-packet16 or WMMA leaf processing on the same recorded work;
 - integrated-kernel timing, phase timing, workload counters, and nine
   CUDA-event samples with alternating backend order;
-- full-image Tensor-versus-CUDA comparison plus a 256-ray brute-force sample.
+- full-image validated-hybrid/CUDA-packet16 comparison plus a 256-ray
+  brute-force sample.
 
 The separated traversal deliberately uses an infinite ray bound because no
 closest hit is available until the leaf stage. Its `traversal + leaves` total
@@ -88,10 +95,11 @@ and `--leaf-sweep` runs 4, 8, 16, 32, 64, 128, and 256.
 Historical Release build, driver 590.44.01, 256x144, 36,864 rays, nine
 samples. Times are median GPU trace-kernel times; they exclude BVH
 construction, Tensor coefficient/local-frame packing, allocation, upload, and
-presentation. Speedup is Matched CUDA time divided by Tensor time; less than
-one means Tensor is slower. This first table uses a maximum leaf size of 16.
+presentation. Speedup is matched CUDA-packet16 time divided by validated-hybrid
+time; less than one means the hybrid is slower. This first table uses a maximum
+leaf size of 16.
 
-| Scene | Triangles | Ray order | Matched | Tensor | Integrated speedup |
+| Scene | Triangles | Ray order | CUDA-packet16 | Validated hybrid | Integrated speedup |
 |---|---:|---|---:|---:|---:|
 | Grid | 32,768 | coherent | 0.6164 ms | 0.7250 ms | 0.850x |
 | Grid | 32,768 | shuffled | 1.3147 ms | 1.4531 ms | 0.905x |
@@ -106,15 +114,16 @@ one means Tensor is slower. This first table uses a maximum leaf size of 16.
 | Sponza | 262,267 | coherent | 2.9801 ms | 3.3360 ms | 0.893x |
 | Sponza | 262,267 | shuffled | 15.4488 ms | 17.1950 ms | 0.898x |
 
-Every configuration reported zero Tensor hit/miss, primitive, or depth
-differences. The historical brute gate allowed one shuffled Sibenik ray to
-select a different coplanar primitive at exactly the same depth. The current
-release gate is strict and would flag that difference for explicit
-investigation. No packet-leaf list overflow was reported.
+Every full-image CUDA-packet16/validated-hybrid comparison reported zero
+hit/miss, primitive, or depth differences. A separate historical brute-force
+sample found one shuffled Sibenik ray selecting a different coplanar primitive
+at exactly the same depth. The current release gate is strict and would flag
+that difference for explicit investigation. No packet-leaf list overflow was
+reported.
 
 Smaller, more selective triangle leaves do not reverse the result:
 
-| Scene | Leaf maximum | Ray order | Matched | Tensor | Integrated speedup |
+| Scene | Leaf maximum | Ray order | CUDA-packet16 | Validated hybrid | Integrated speedup |
 |---|---:|---|---:|---:|---:|
 | Checker High | 4 | coherent | 1.3732 ms | 1.4418 ms | 0.952x |
 | Checker High | 4 | shuffled | 1.6978 ms | 1.7866 ms | 0.950x |
@@ -130,9 +139,10 @@ fixes and regression-tests.
 ## Candidate-rich maximum-256 leaves
 
 Large leaves deliberately trade BVH selectivity for enough intersection work
-to amortize WMMA. They restore a matched-configuration Tensor advantage:
+to amortize WMMA. They restore a matched-configuration validated-hybrid
+advantage:
 
-| Scene | Ray order | BVH8 nodes | Tests / ray | Matched | Tensor | Speedup |
+| Scene | Ray order | BVH8 nodes | Tests / ray | CUDA-packet16 | Validated hybrid | Speedup |
 |---|---|---:|---:|---:|---:|---:|
 | Checker High | coherent | 1,601 | 23.7 | 3.5164 ms | 2.8959 ms | 1.214x |
 | Checker High | shuffled | 1,601 | 23.7 | 2.2784 ms | 1.9391 ms | 1.175x |
@@ -141,16 +151,16 @@ to amortize WMMA. They restore a matched-configuration Tensor advantage:
 | Sponza | coherent | 485 | 819.6 | 4.4718 ms | 4.4042 ms | 1.015x |
 | Sponza | shuffled | 485 | 819.6 | 24.8585 ms | 22.6865 ms | 1.096x |
 
-These runs had zero observed Tensor-versus-CUDA hit, primitive, or depth
-differences with the wider FP16 candidate envelope and FP32 final predicate.
+These runs had zero observed validated-hybrid/CUDA-packet16 hit, primitive, or
+depth differences with the wider FP16 candidate envelope and FP32 final predicate.
 The envelope is empirically chosen; a formal no-false-negative bound has not
 been proved.
 
 This is a relative win against CUDA using the same deliberately coarse tree,
 not the best absolute renderer. Checker High with 16-triangle leaves takes
-1.1131 ms on Matched CUDA and 1.1919 ms on Tensor; Tensor at 256 leaves takes
-2.8959 ms. Sponza shows the same pattern: its fine-leaf CUDA path is 2.9801 ms,
-well below the 4.4042 ms candidate-rich Tensor result.
+1.1131 ms on CUDA-packet16 and 1.1919 ms on the validated hybrid; the hybrid at
+256 leaves takes 2.8959 ms. Sponza shows the same pattern: its fine-leaf CUDA
+path is 2.9801 ms, well below the 4.4042 ms candidate-rich hybrid result.
 
 Checker High crosses over gradually:
 
@@ -163,6 +173,11 @@ Checker High crosses over gradually:
 | 64 | 1.028x | 0.917x |
 | 128 | 1.158x | 0.987x |
 | 256 | 1.214x | 1.175x |
+
+![Historical Checker High crossover against matched CUDA-packet16](checker-high-crossover.svg)
+
+This plot visualizes the historical table only. It is not a CUDA32 comparison
+and does not upgrade the underlying notes to archival evidence.
 
 ## Phase result and numerical false negative
 
@@ -179,18 +194,18 @@ The revised candidate filter:
 - never rejects from the approximate depth sign; and
 - uses a two-times-determinant barycentric envelope.
 
-It produced zero Tensor-versus-CUDA disagreements in that historical suite,
+It produced zero validated-hybrid/CUDA-packet16 disagreements in that historical suite,
 but removed the apparent isolated leaf win. The notes did not retain enough
 scene, resolution, leaf-maximum, or raw-sample metadata to make this table
 independently auditable; it is preserved only as motivation:
 
-| Ray order | Traversal | CUDA leaves | Tensor leaves | Leaf speedup | Separated total |
+| Ray order | Traversal | CUDA-packet16 leaves | WMMA leaves | Leaf speedup | Separated total |
 |---|---:|---:|---:|---:|---:|
 | coherent | 1.5186 ms | 0.9165 ms | 1.0462 ms | 0.876x | 2.4351 / 2.5648 ms |
 | shuffled | 2.3972 ms | 0.3830 ms | 0.4618 ms | 0.829x | 2.7802 / 2.8590 ms |
 
 Sponza performed about 62.5 CUDA triangle tests per ray. The wider Tensor
-filter sent about 30.4 candidates per ray to exact FP32 validation; WMMA setup
+filter sent about 30.4 candidates per ray to FP32 validation; WMMA setup
 and packet masking cost more than the rejected CUDA intersections.
 
 ## Conclusion
@@ -200,21 +215,22 @@ fine-leaf SAH tree. At a maximum leaf size of 16, Checker High falls to about
 1.8 triangle tests per ray, leaving too little arithmetic for WMMA to amortize
 its fragment, shared-memory, synchronization, and robust FP32 fallback costs.
 
-The historical advantage returned with configured maxima of 128–256
-triangles. That supports the candidate-density hypothesis across Checker High,
-Sibenik, and Sponza, including shuffled packets. It does not yet improve the
-fastest absolute renderer: the extra intersections cost more than the boxes
-saved when compared with the best fine-leaf CUDA configuration.
+The historical advantage returned in some Checker High 128-triangle cases and
+the listed 256-triangle cases. That supports a candidate-density hypothesis,
+not a general crossover claim. It did not improve the fastest absolute trace
+kernel: the extra intersections cost more than the boxes saved when compared
+with the best fine-leaf CUDA configuration.
 
-The result is therefore both positive and bounded: on this GPU and matched
-16-ray-packet baseline, Tensor accelerates candidate-rich leaves, while the
-fastest tested end-to-end triangle tracing configuration benefits more from
-BVH selectivity. The suite also identified a rare numerical false negative
+The bounded historical result is that the integrated validated hybrid beat the
+matched 16-ray CUDA diagnostic in deliberately candidate-rich configurations.
+The isolated Tensor leaf kernel did not win in the retained phase table, and
+the best tested trace-kernel configuration benefited more from BVH
+selectivity. The suite also identified a rare candidate-filter false negative
 that the original Checker-only tests missed.
 
 Next useful work is to increase useful MMA density without weakening the BVH:
 compact active rays and leaves into dense tiles, batch work across packets,
-and test custom primitives whose exact intersection cost is substantially
+and test custom primitives whose FP32 intersection cost is substantially
 higher than Möller-Trumbore.
 
 ## Remaining wide-BVH limitation
@@ -229,7 +245,10 @@ layout. A compressed traversal implementation remains a useful control.
 The archived matched CUDA kernel intentionally used the same 16-ray packet
 width as the WMMA path, so only 16 lanes of its 32-lane warp owned rays. The
 current harness adds a stronger one-independent-ray-per-lane CUDA32 control.
-Its local Grid quick sweep was faster than Tensor in every tested case.
+In July 21 default-max-leaf-16 Grid quick checks, CUDA32 was faster than every
+tested WMMA path. Two inaccurate no-Möller modes narrowly crossed CUDA32 only
+after weakening the maximum leaf size to 256; those observations are
+unarchived and documented in [Findings and evidence](RESULTS.md).
 
 The archived packet-shuffled mode only rearranged primary rays. The current
 harness additionally generates deterministic cosine-weighted first-bounce

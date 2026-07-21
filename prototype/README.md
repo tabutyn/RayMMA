@@ -18,7 +18,6 @@ accumulation. It evaluates four triangles against sixteen rays, producing
 - `ALGEBRA.md` — commented derivation, feature layout, and hit predicates.
 - `tensor_ray_triangle_wmma.cu` — CUDA kernel plus a standalone GPU test.
 - `verify_algebra.py` — dependency-free CPU randomized algebra test.
-- `CMakeLists.txt` — optional CMake build.
 
 ## First test: algebra only
 
@@ -42,13 +41,14 @@ nvcc -std=c++17 -O3 -arch=sm_80 tensor_ray_triangle_wmma.cu \
 The code requires compute capability 7.0 or later. Compile for the actual GPU
 rather than blindly copying the example architecture.
 
-## Build with CMake
+## Build with the repository CMake project
+
+Run this from the RayMMA repository root:
 
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_CUDA_ARCHITECTURES=80
-cmake --build build --parallel
-./build/tensor_ray_triangle_wmma
+cmake --preset core -DCMAKE_CUDA_ARCHITECTURES=80
+cmake --build --preset core --target tensor-ray-correctness --parallel
+./build/core/tensor-ray-correctness
 ```
 
 ## What the executable verifies
@@ -76,12 +76,10 @@ The executable constructs a deterministic `4 triangles x 16 rays` tile. It:
 - Benchmark against an optimized CUDA intersection kernel and the target GPU's
   RT hardware. A successful arithmetic test does not establish a speedup.
 
-## Suggested next implementation step
+## Where the full experiment lives
 
-Replace `makeTriangles()` and `makeRays()` with data emitted by one BVH leaf and
-one coherent ray packet. Keep the WMMA tile unchanged initially, then measure:
-
-- time spent generating `cross(O,r)` and packing features;
-- fraction of the 64 candidate pairs that traversal actually needs;
-- WMMA kernel time, post-test time, and end-to-end traversal time separately;
-- disagreement rate against an FP32 watertight reference.
+This prototype is intentionally frozen as the smallest test of the separated
+tile algebra. The BVH-integrated benchmark, local coordinate frames,
+Tensor-owned depth variants, CUDA32 control, timing scopes, and accuracy
+reporting are implemented in
+[`../src/research_benchmark.cu`](../src/research_benchmark.cu).

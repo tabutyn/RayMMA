@@ -28,6 +28,18 @@ four-triangle by sixteen-ray coefficient layout, its integration with
 candidate-rich BVH leaves, and the measured crossover with FP32 revalidation.
 That is a research hypothesis, not a novelty conclusion.
 
+## Baselines not included
+
+RayMMA compares CUDA software intersection strategies. It does not currently
+benchmark NVIDIA RT Cores, OptiX, Vulkan ray tracing, DirectX Raytracing, or a
+compressed production GPU traversal kernel. TinyBVH is used only as an
+optional established hierarchy builder; its output is converted to RayMMA's
+uncompressed BVH8 traversal format.
+
+The repository also lacks a raw all-pairs `N rays × M triangles` sweep and
+cross-generation GPU results. Those are necessary before drawing a broader
+architectural conclusion.
+
 Before a paper or patent claim:
 
 1. conduct a structured literature and patent search for matrix-form,
