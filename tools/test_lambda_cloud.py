@@ -103,8 +103,9 @@ class LambdaCloudTests(unittest.TestCase):
         )
         choices = cloud.available_cloud_gpus(types)
         self.assertEqual(
-            [item["model"] for item in choices], ["h100", "a100", "a10"]
+            [item["model"] for item in choices], ["h100", "a100"]
         )
+        self.assertNotIn("a10", [item["model"] for item in choices])
         self.assertEqual(cloud.choose_capacity(types, None, None)["model"], "h100")
 
     def test_selects_only_one_a100_and_excludes_unprotected_region(self) -> None:

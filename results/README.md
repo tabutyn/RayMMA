@@ -25,7 +25,7 @@ For a new machine or workload, retain:
 No-Möller claims must identify the Tensor variant and report its accuracy
 counters beside its speedup.
 
-On a supported single B200, H100, A100, or A10,
+On a desired single B200, H100, or A100,
 `tools/run_cloud_gpu.sh --profile archive` builds for the native CUDA
 architecture and creates a ready-to-transfer tarball containing the
 procedural Grid primary/secondary leaf sweeps, all three variants, build and

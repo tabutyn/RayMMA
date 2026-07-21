@@ -33,7 +33,7 @@ downloaded scene assets.
 
 ## Cloud GPU evidence archive
 
-On a clean checkout running on a single B200, H100, A100, or A10, the archive
+On a clean checkout running on a single B200, H100, or A100, the archive
 helper uses the `core` preset's native CUDA architecture, captures environment
 and source hashes, runs all three Tensor variants over the procedural Grid
 leaf sweep, and packages logs, raw CSVs, checksums, and built executables:
