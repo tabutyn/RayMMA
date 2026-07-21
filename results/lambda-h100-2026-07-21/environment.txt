@@ -1,0 +1,42 @@
+captured_utc=2026-07-21T20:48:04Z
+repository=RayMMA
+publication_note=Inspect this output for private paths and filenames before sharing.
+commit=07df9d82e7bc4c15a27eb12be9cea318872e8093
+describe=07df9d8
+status_begin
+?? build/
+status_end
+
+[system]
+Linux 6.8.0-1046-nvidia x86_64 GNU/Linux
+Architecture:                            x86_64
+CPU(s):                                  26
+Model name:                              Intel(R) Xeon(R) Platinum 8480+
+
+[gpu]
+NVIDIA H100 80GB HBM3, 81559 MiB, 580.105.08, P0, 700.00 W, 345 MHz, 2619 MHz
+
+[toolchain]
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2025 NVIDIA Corporation
+Built on Fri_Feb_21_20:23:50_PST_2025
+Cuda compilation tools, release 12.8, V12.8.93
+Build cuda_12.8.r12.8/compiler.35583870_0
+cmake version 3.28.3
+
+CMake suite maintained and supported by Kitware (kitware.com/cmake).
+c++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+Copyright (C) 2023 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+Python 3.12.3
+
+[cmake-cache]
+CMAKE_BUILD_TYPE:STRING=Release
+CMAKE_CUDA_COMPILER:FILEPATH=/usr/bin/nvcc
+CMAKE_CXX_COMPILER:FILEPATH=/usr/bin/c++
+RAYMMA_BUILD_BENCHMARK:BOOL=ON
+RAYMMA_BUILD_VIEWER:BOOL=OFF
+RAYMMA_ENABLE_EXTERNAL_SCENES:BOOL=OFF
+RAYMMA_ENABLE_TINYBVH:BOOL=OFF

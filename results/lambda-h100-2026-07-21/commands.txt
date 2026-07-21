@@ -1,0 +1,9 @@
+$ cmake --preset core
+$ cmake --build --preset core --parallel
+$ ctest --preset core
+$ /home/ubuntu/RayMMA-666f941d2cb2/build/core/tensor-wide-bvh-bench --scene Grid --leaf-sweep --variant validated --raw-csv /home/ubuntu/RayMMA-666f941d2cb2/build/raymma-cloud-20260721T204752Z-07df9d82e7bc/grid-primary-validated.csv
+$ /home/ubuntu/RayMMA-666f941d2cb2/build/core/tensor-wide-bvh-bench --scene Grid --leaf-sweep --variant uvt-depthsorted --raw-csv /home/ubuntu/RayMMA-666f941d2cb2/build/raymma-cloud-20260721T204752Z-07df9d82e7bc/grid-primary-uvt-depthsorted.csv
+$ /home/ubuntu/RayMMA-666f941d2cb2/build/core/tensor-wide-bvh-bench --scene Grid --leaf-sweep --variant e0e1e2 --raw-csv /home/ubuntu/RayMMA-666f941d2cb2/build/raymma-cloud-20260721T204752Z-07df9d82e7bc/grid-primary-e0e1e2.csv
+$ /home/ubuntu/RayMMA-666f941d2cb2/build/core/tensor-wide-bvh-bench --scene Grid --leaf-sweep --ray-mode secondary --variant validated --raw-csv /home/ubuntu/RayMMA-666f941d2cb2/build/raymma-cloud-20260721T204752Z-07df9d82e7bc/grid-secondary-validated.csv
+$ /home/ubuntu/RayMMA-666f941d2cb2/build/core/tensor-wide-bvh-bench --scene Grid --leaf-sweep --ray-mode secondary --variant uvt-depthsorted --raw-csv /home/ubuntu/RayMMA-666f941d2cb2/build/raymma-cloud-20260721T204752Z-07df9d82e7bc/grid-secondary-uvt-depthsorted.csv
+$ /home/ubuntu/RayMMA-666f941d2cb2/build/core/tensor-wide-bvh-bench --scene Grid --leaf-sweep --ray-mode secondary --variant e0e1e2 --raw-csv /home/ubuntu/RayMMA-666f941d2cb2/build/raymma-cloud-20260721T204752Z-07df9d82e7bc/grid-secondary-e0e1e2.csv

@@ -7,7 +7,9 @@ The retained evidence bundles are:
 - the [paid Lambda Cloud A10 archive run](lambda-a10-2026-07-21/README.md),
   with all 16 tests, primary and secondary procedural Grid leaf sweeps, raw
   nine-sample CSVs, complete transcripts, machine/source provenance, built
-  executables, and the original verified download; and
+  executables, and the original verified download;
+- the [paid Lambda Cloud H100 archive run](lambda-h100-2026-07-21/README.md),
+  with the same archive contract built natively for SM90; and
 - the [RTX 3050 Ti Coastal Cliff rerun](rtx3050ti-coastal-cliff-2026-07-21/README.md),
   with the current exact and Tensor-owned backends, 15 passing tests, raw
   nine-sample CSVs, full transcripts, environment capture, source and asset

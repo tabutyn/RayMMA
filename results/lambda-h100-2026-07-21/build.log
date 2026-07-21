@@ -1,0 +1,6 @@
+[ 25%] Building CUDA object CMakeFiles/tensor-wide-bvh-bench.dir/src/research_benchmark.cu.o
+[ 50%] Building CUDA object CMakeFiles/tensor-ray-correctness.dir/prototype/tensor_ray_triangle_wmma.cu.o
+[ 75%] Linking CUDA executable tensor-ray-correctness
+[ 75%] Built target tensor-ray-correctness
+[100%] Linking CUDA executable tensor-wide-bvh-bench
+[100%] Built target tensor-wide-bvh-bench
