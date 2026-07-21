@@ -27,10 +27,6 @@ The broader lesson: making one computation faster does not necessarily make
 the whole program faster. Data selection, batching, memory movement, and
 accuracy can matter more than raw arithmetic throughput.
 
-The open systems question is whether useful ray/triangle candidates can be
-packed into dense Tensor Core batches without losing the BVH efficiency that
-made those batches sparse in the first place.
-
 The repository includes the CUDA implementation, tests, raw benchmark data,
 reproduction instructions, and negative results.
 

@@ -65,10 +65,6 @@ source manifest.
   and depth error part of the result.
 - Packet order materially changes traversal and batching costs.
 
-The open systems question is compaction: can a selective traversal cheaply
-pack its sparse surviving candidates into dense MMA tiles without giving back
-the work it saved?
-
 ## Scope
 
 This is a software BVH comparison on one RTX 3050 Ti Laptop GPU. The strongest

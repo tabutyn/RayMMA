@@ -45,9 +45,6 @@ at silhouettes or shared edges.
 - **Removing Möller exposes real error.** The current archived suite found
   mostly matching hit masks but wrong closest primitives and occasionally
   large relative depth error.
-- **The honest open question is compaction.** Can traversal assemble dense,
-  useful MMA tiles without weakening BVH selectivity?
-
 See [Findings and evidence](docs/RESULTS.md) for the complete measured result
 and its scope.
 
@@ -79,6 +76,12 @@ ctest --preset core
 
 The default procedural Grid scene is generated in source and needs no
 downloaded model, Blender, or TinyBVH.
+
+For an NVIDIA A100, `./tools/run_a100.sh --profile archive` builds for SM 80,
+runs the primary and secondary Grid leaf sweeps, and creates one checksummed
+result tarball. [Running on Lambda Cloud](docs/LAMBDA_CLOUD.md) documents the
+API-only path that selects live 1×A100 capacity, launches the instance, runs
+that helper, downloads the archive, verifies it, and terminates the rental.
 
 For a high-density real mesh with unambiguous redistribution rights, fetch
 Poly Haven's CC0 Coastal Cliff 01 and let Blender derive three benchmark tiers:
@@ -203,6 +206,8 @@ TinyBVH's production traversal kernel.
 - [`docs/RESULTS.md`](docs/RESULTS.md) — current findings and evidence status.
 - [`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md) — complete commands and
   measurement contract.
+- [`docs/LAMBDA_CLOUD.md`](docs/LAMBDA_CLOUD.md) — scripted Lambda Cloud A100
+  launch, benchmark, result retrieval, and termination.
 - [`docs/RELATED_WORK.md`](docs/RELATED_WORK.md) — related work and novelty
   boundary.
 - [`results/`](results) — raw evidence policy and retained bundles.

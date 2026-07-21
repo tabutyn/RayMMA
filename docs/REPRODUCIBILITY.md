@@ -31,6 +31,37 @@ toolkit).
 The default procedural Grid path does not require Blender, TinyBVH, or
 downloaded scene assets.
 
+## A100 evidence archive
+
+The A100 preset fixes the generated code target to SM 80:
+
+```sh
+cmake --preset a100
+cmake --build --preset a100 --parallel
+ctest --preset a100
+```
+
+On a clean checkout running on an A100, the archive helper performs those
+steps, captures the environment and source hashes, runs all three Tensor
+variants over the procedural Grid leaf sweep, and packages logs, raw CSVs,
+checksums, and the built executables:
+
+```sh
+./tools/run_a100.sh --profile quick
+# or the 256x144 primary + secondary archive suite:
+./tools/run_a100.sh --profile archive
+(cd build && sha256sum -c raymma-a100-results.tar.gz.sha256)
+```
+
+The fixed output paths are `build/raymma-a100-results.tar.gz` and its
+`.sha256` sidecar. A failing test or benchmark still produces a partial
+archive with `exit-code.txt` when packaging remains possible. The helper
+rejects dirty checkouts and non-A100 GPUs so the default artifact cannot be
+mislabelled.
+
+For API-driven rental, SSH, execution, retrieval, and termination, see
+[Running on Lambda Cloud](LAMBDA_CLOUD.md).
+
 ## Benchmark modes
 
 ```sh

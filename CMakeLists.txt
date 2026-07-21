@@ -183,6 +183,9 @@ if(BUILD_TESTING)
     add_test(NAME tensor-ray-algebra
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/prototype/verify_algebra.py")
+    add_test(NAME lambda-cloud-offline
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_lambda_cloud.py")
     add_test(NAME tensor-ray-wmma COMMAND tensor-ray-correctness)
     if(TARGET tensor-wide-bvh-bench)
         add_test(NAME tensor-wide-bvh-smoke

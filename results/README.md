@@ -19,3 +19,8 @@ For a new machine or workload, retain:
 
 No-Möller claims must identify the Tensor variant and report its accuracy
 counters beside its speedup.
+
+For an A100, `tools/run_a100.sh --profile archive` creates a ready-to-transfer
+tarball containing the procedural Grid primary/secondary leaf sweeps, all
+three variants, the build and test logs, environment, binaries, raw CSVs, and
+checksums. Keep the `.sha256` sidecar with the tarball.

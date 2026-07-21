@@ -185,7 +185,10 @@ __global__ void traceMatchedWide(
                 stats,mask,leaf,node.count[slot]);
             if(!mask)continue;
             if(!leaf) {
-                if(lane==0)stack[stackTop++]=node.child[slot];
+                if(lane==0) {
+                    if(stackTop<64)stack[stackTop++]=node.child[slot];
+                    else if(stats)atomicAdd(&stats->stackOverflows,1ull);
+                }
                 continue;
             }
             if(lane<PACKET_RAYS&&(mask&(1u<<lane))) {
@@ -453,7 +456,10 @@ __global__ void traceTensorWide(
                 stats,mask,leaf,node.count[slot]);
             if(!mask)continue;
             if(!leaf) {
-                if(lane==0)stack[stackTop++]=node.child[slot];
+                if(lane==0) {
+                    if(stackTop<64)stack[stackTop++]=node.child[slot];
+                    else if(stats)atomicAdd(&stats->stackOverflows,1ull);
+                }
                 continue;
             }
             tensorTiles+=(node.count[slot]+3)/4;
@@ -499,7 +505,10 @@ __global__ void collectPacketLeaves(
                 stats,mask,leaf,node.count[slot]);
             if(!mask)continue;
             if(!leaf) {
-                if(lane==0)stack[stackTop++]=node.child[slot];
+                if(lane==0) {
+                    if(stackTop<64)stack[stackTop++]=node.child[slot];
+                    else if(stats)atomicAdd(&stats->stackOverflows,1ull);
+                }
             } else if(lane==0) {
                 int index=leafTop++;
                 if(index<MAX_PACKET_LEAVES)
@@ -1664,14 +1673,18 @@ static bool runScene(
                 "    CUDA32 work: %.2f nodes/ray %.2f leaves/ray "
                 "%.1f triangle tests/ray | WMMA survivors to Moller %.1f/ray | "
                 "numeric fallbacks=%llu | hits=%d | packet leaves max=%d "
-                "overflow=%d | CUDA32 stack overflow=%llu\n",
+                "overflow=%d | stack overflow CUDA32/packet16/WMMA/phase="
+                "%llu/%llu/%llu/%llu\n",
                 double(result.cuda32Stats.nodeVisits)/raysCount,
                 double(result.cuda32Stats.rayLeafVisits)/raysCount,
                 double(result.cuda32Stats.triangleTests)/raysCount,
                 double(result.tensorStats.exactTests)/raysCount,
                 result.tensorStats.numericFallbacks,result.hitCount,
                 result.maxLeaves,result.overflow,
-                result.cuda32Stats.stackOverflows);
+                result.cuda32Stats.stackOverflows,
+                result.matchedStats.stackOverflows,
+                result.tensorStats.stackOverflows,
+                result.traversalStats.stackOverflows);
         else
             std::printf(
                 "    CUDA32 work: %.2f nodes/ray %.2f leaves/ray "
@@ -1679,7 +1692,8 @@ static bool runScene(
                 "    WMMA work: %.2f leaves/ray %.1f triangle pairs/ray | "
                 "depth updates %.2f/ray | "
                 "Moller checks=0 | reference hits=%d | packet leaves max=%d "
-                "overflow=%d | CUDA32 stack overflow=%llu\n",
+                "overflow=%d | stack overflow CUDA32/packet16/WMMA/phase="
+                "%llu/%llu/%llu/%llu\n",
                 double(result.cuda32Stats.nodeVisits)/raysCount,
                 double(result.cuda32Stats.rayLeafVisits)/raysCount,
                 double(result.cuda32Stats.triangleTests)/raysCount,
@@ -1687,7 +1701,10 @@ static bool runScene(
                 double(result.tensorStats.triangleTests)/raysCount,
                 double(result.tensorStats.exactTests)/raysCount,
                 result.hitCount,result.maxLeaves,result.overflow,
-                result.cuda32Stats.stackOverflows);
+                result.cuda32Stats.stackOverflows,
+                result.matchedStats.stackOverflows,
+                result.tensorStats.stackOverflows,
+                result.traversalStats.stackOverflows);
         std::printf("    correctness: ");
         printAccuracy("CUDA32",result.cuda32Accuracy);
         std::printf(" | ");
@@ -1710,7 +1727,11 @@ static bool runScene(
         // output, and traversal integrity remain mandatory.
         bool modePass=accuracyPass(result.cuda32Accuracy,true)&&
                       accuracyPass(result.bruteAccuracy,true)&&
-                      !result.overflow&&!result.cuda32Stats.stackOverflows;
+                      !result.overflow&&
+                      !result.cuda32Stats.stackOverflows&&
+                      !result.matchedStats.stackOverflows&&
+                      !result.tensorStats.stackOverflows&&
+                      !result.traversalStats.stackOverflows;
         if(tensorVariant==TensorVariant::Validated)
             modePass&=accuracyPass(result.tensorAccuracy,true)&&
                       accuracyPass(result.phasedAccuracy,true);

@@ -26,6 +26,10 @@
 - Strengthened brute-force validation with strict primitive agreement and
   16-by-16 image-coordinate stratification.
 - Added raw timing CSV export and a reproducible CC0 scene result bundle.
+- Removed the warp-local compaction experiment and its speculative
+  performance framing.
+- Added an A100 preset, an archive-producing GPU runner, and Lambda Cloud API
+  automation for launch, per-instance SSH rules, retrieval, and termination.
 - Documented the candidate-density crossover and the failed FP16 filter.
 - Added a textured orbital viewer for CUDA32, matched CUDA-packet16, and the
   reference-validated WMMA path.

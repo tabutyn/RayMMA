@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 5,
   "cmakeMinimumRequired": {
     "major": 3,
     "minor": 24,
@@ -17,18 +17,39 @@
         "RAYMMA_ENABLE_TINYBVH": "OFF",
         "RAYMMA_ENABLE_EXTERNAL_SCENES": "OFF"
       }
+    },
+    {
+      "name": "a100",
+      "displayName": "RayMMA A100 Release (SM 80)",
+      "description": "Portable core configured for NVIDIA A100",
+      "inherits": "core",
+      "binaryDir": "${sourceDir}/build/a100",
+      "cacheVariables": {
+        "CMAKE_CUDA_ARCHITECTURES": "80"
+      }
     }
   ],
   "buildPresets": [
     {
       "name": "core",
       "configurePreset": "core"
+    },
+    {
+      "name": "a100",
+      "configurePreset": "a100"
     }
   ],
   "testPresets": [
     {
       "name": "core",
       "configurePreset": "core",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "a100",
+      "configurePreset": "a100",
       "output": {
         "outputOnFailure": true
       }
