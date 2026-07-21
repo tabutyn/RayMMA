@@ -17,6 +17,18 @@ import lambda_cloud as cloud
 
 def instance_types(regions: tuple[str, ...] = ("us-west-1",)) -> dict:
     return {
+        "gpu_1x_b200": {
+            "instance_type": {
+                "name": "gpu_1x_b200",
+                "description": "1x NVIDIA B200",
+                "gpu_description": "NVIDIA B200",
+                "price_cents_per_hour": 499,
+                "specs": {"gpus": 1},
+            },
+            "regions_with_capacity_available": [
+                {"name": region} for region in regions
+            ],
+        },
         "gpu_1x_a100": {
             "instance_type": {
                 "name": "gpu_1x_a100",
@@ -99,19 +111,31 @@ class LambdaCloudTests(unittest.TestCase):
                     },
                     "regions_with_capacity_available": [{"name": "us-west-1"}],
                 },
+                "gpu_1x_b200": {
+                    "instance_type": {
+                        "name": "gpu_1x_b200",
+                        "description": "1x NVIDIA B200",
+                        "price_cents_per_hour": 499,
+                        "specs": {"gpus": 1},
+                    },
+                    "regions_with_capacity_available": [{"name": "us-west-1"}],
+                },
             }
         )
         choices = cloud.available_cloud_gpus(types)
         self.assertEqual(
-            [item["model"] for item in choices], ["a100"]
+            [item["model"] for item in choices], ["b200"]
         )
         self.assertNotIn("h100", [item["model"] for item in choices])
         self.assertNotIn("a10", [item["model"] for item in choices])
-        self.assertEqual(cloud.choose_capacity(types, None, None)["model"], "a100")
+        self.assertNotIn("a100", [item["model"] for item in choices])
+        self.assertEqual(cloud.choose_capacity(types, None, None)["model"], "b200")
 
-    def test_selects_only_one_a100_and_excludes_unprotected_region(self) -> None:
-        choices = cloud.available_a100s(instance_types(("us-south-1", "us-west-1")))
-        self.assertEqual([item["name"] for item in choices], ["gpu_1x_a100"])
+    def test_selects_only_b200_and_excludes_unprotected_region(self) -> None:
+        choices = cloud.available_cloud_gpus(
+            instance_types(("us-south-1", "us-west-1"))
+        )
+        self.assertEqual([item["name"] for item in choices], ["gpu_1x_b200"])
         self.assertEqual(choices[0]["regions"], ["us-west-1"])
         with self.assertRaises(cloud.CloudError):
             cloud.choose_capacity(instance_types(("us-south-1",)), None, None)

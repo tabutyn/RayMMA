@@ -133,7 +133,7 @@ def region_name(value: Any) -> str:
     return str(value or "")
 
 
-GPU_PRIORITY = ("b200", "a100")
+GPU_PRIORITY = ("b200",)
 
 
 def available_cloud_gpus(instance_types: dict[str, Any]) -> list[dict[str, Any]]:
@@ -180,13 +180,6 @@ def available_cloud_gpus(instance_types: dict[str, Any]) -> list[dict[str, Any]]
             item["name"],
         ),
     )
-
-
-def available_a100s(instance_types: dict[str, Any]) -> list[dict[str, Any]]:
-    """Backward-compatible filtered view used by older callers."""
-    return [item for item in available_cloud_gpus(instance_types) if item["model"] == "a100"]
-
-
 def choose_capacity(
     instance_types: dict[str, Any], requested_type: str | None, requested_region: str | None
 ) -> dict[str, Any]:
@@ -1065,7 +1058,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run.add_argument(
         "--instance-type",
-        help="exact live supported single-GPU type; auto-select B200/A100",
+        help="exact live supported single-GPU type; auto-select B200 only",
     )
     run.add_argument("--region", help="exact region; auto-select from live capacity by default")
     run.add_argument("--image-family", default=DEFAULT_IMAGE_FAMILY)

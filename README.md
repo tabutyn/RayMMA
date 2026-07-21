@@ -77,7 +77,7 @@ ctest --preset core
 The default procedural Grid scene is generated in source and needs no
 downloaded model, Blender, or TinyBVH.
 
-On a desired single B200 or A100,
+On a desired single B200,
 `./tools/run_cloud_gpu.sh --profile archive` builds for the native CUDA
 architecture, runs the primary and secondary Grid leaf sweeps, and creates a
 checksummed result tarball. [Running on Lambda Cloud](docs/LAMBDA_CLOUD.md)

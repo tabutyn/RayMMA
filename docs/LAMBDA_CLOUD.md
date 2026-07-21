@@ -3,7 +3,7 @@
 `tools/lambda_cloud.py` automates the useful lifecycle through Lambda's
 official REST API:
 
-1. inspect live single-GPU B200 and A100 capacity and prices;
+1. inspect live single-GPU B200 capacity and prices;
 2. upload a dedicated SSH **public** key if needed;
 3. create or reuse a region-specific TCP/22 ruleset for your source CIDR;
 4. launch one supported GPU with no persistent filesystem;
@@ -102,9 +102,24 @@ python3 tools/lambda_cloud.py run \
   --yes
 ```
 
+For a bounded unattended B200 availability watch, keep the credential in a
+permission-0600 file outside the repository and run:
+
+```sh
+LAMBDA_API_KEY_FILE="$HOME/RayMMA.txt" \
+  ./tools/watch_lambda_b200.sh --hours 12
+```
+
+The watcher uses one local lock, randomized three-to-seven-minute intervals,
+and the B200 type only. If capacity appears, it runs the same archive workflow
+once and exits after verified retrieval and confirmed termination. Progress is
+written to `lambda-results/b200-watch.state`; redirect stdout/stderr to a log
+when launching it detached. The watcher cannot survive the local computer
+powering off or losing network access.
+
 Selection is based on the live `/instance-types` response. The helper accepts
 only types whose reported GPU count is exactly one and selects in the explicit
-priority order B200 then A100; price and type name break ties
+the B200 family only; price and type name break ties
 within a model. Use `--instance-type` and `--region` to pin a choice shown by
 `inventory`. It will not silently rent a multi-GPU machine or a GPU family
 outside that list.
