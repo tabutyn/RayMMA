@@ -133,7 +133,7 @@ def region_name(value: Any) -> str:
     return str(value or "")
 
 
-GPU_PRIORITY = ("b200", "h100", "a100")
+GPU_PRIORITY = ("b200", "a100")
 
 
 def available_cloud_gpus(instance_types: dict[str, Any]) -> list[dict[str, Any]]:
@@ -1065,7 +1065,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run.add_argument(
         "--instance-type",
-        help="exact live supported single-GPU type; auto-select B200/H100/A100",
+        help="exact live supported single-GPU type; auto-select B200/A100",
     )
     run.add_argument("--region", help="exact region; auto-select from live capacity by default")
     run.add_argument("--image-family", default=DEFAULT_IMAGE_FAMILY)

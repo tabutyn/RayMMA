@@ -3,7 +3,7 @@
 `tools/lambda_cloud.py` automates the useful lifecycle through Lambda's
 official REST API:
 
-1. inspect live single-GPU B200, H100, and A100 capacity and prices;
+1. inspect live single-GPU B200 and A100 capacity and prices;
 2. upload a dedicated SSH **public** key if needed;
 3. create or reuse a region-specific TCP/22 ruleset for your source CIDR;
 4. launch one supported GPU with no persistent filesystem;
@@ -104,7 +104,7 @@ python3 tools/lambda_cloud.py run \
 
 Selection is based on the live `/instance-types` response. The helper accepts
 only types whose reported GPU count is exactly one and selects in the explicit
-priority order B200, H100, then A100; price and type name break ties
+priority order B200 then A100; price and type name break ties
 within a model. Use `--instance-type` and `--region` to pin a choice shown by
 `inventory`. It will not silently rent a multi-GPU machine or a GPU family
 outside that list.
