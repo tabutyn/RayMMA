@@ -1,43 +1,12 @@
-captured_utc=2026-07-21T12:20:58Z
+captured_utc=2026-07-21T13:37:13Z
 repository=RayMMA
 publication_note=Inspect this output for private paths and filenames before sharing.
-commit=847105571f603b8edb8669983a4a9b487ed88ac8
-describe=84710557
+commit=7538a676a86bb88d9891aa441716c9fc17a24417
+describe=7538a67
 status_begin
- M .github/ISSUE_TEMPLATE/benchmark-result.yml
- M .gitignore
- M CHANGELOG.md
- M CITATION.cff
- M CMakeLists.txt
- M CONTRIBUTING.md
- M README.md
- M SECURITY.md
- M THIRD_PARTY.md
- D docs/GITHUB_POST.md
- M docs/METHOD.md
- M docs/RELATED_WORK.md
- D docs/RELEASE_CHECKLIST.md
- D docs/REPOSITORY_PROFILE.md
- M docs/REPRODUCIBILITY.md
- M docs/RESULTS_RTX3050TI.md
- M prototype/ALGEBRA.md
- M prototype/README.md
- M results/README.md
- M results/rtx3050ti-grid-2026-07-19/README.md
- M src/live_viewer.cu
- M src/research_benchmark.cu
- M src/viewer.cpp
- M tools/capture_environment.sh
- M tools/export_public_tree.sh
- D tools/extract_checker_triangles.py
-?? .github/workflows/reuse.yml
-?? LICENSES/
-?? REUSE.toml
-?? docs/RESULTS.md
-?? results/rtx3050ti-coastal-cliff-2026-07-21/
-?? results/rtx3050ti-pushed-5e05391-2026-07-21/
-?? tools/extract_scene_triangles.py
-?? tools/fetch_open_model.sh
+ D third_party/mit-cuda-raytracer
+?? .github/
+?? .gitignore
 status_end
 
 [system]
@@ -47,7 +16,7 @@ CPU(s):                                  8
 Model name:                              11th Gen Intel(R) Core(TM) i7-11370H @ 3.30GHz
 
 [gpu]
-NVIDIA GeForce RTX 3050 Ti Laptop GPU, 4096 MiB, 590.44.01, P0, [N/A], 1485 MHz, 6001 MHz
+NVIDIA GeForce RTX 3050 Ti Laptop GPU, 4096 MiB, 590.44.01, P0, [N/A], 2002 MHz, 6001 MHz
 
 [toolchain]
 nvcc: NVIDIA (R) Cuda compiler driver
@@ -68,7 +37,7 @@ Python 3.11.2
 [cmake-cache]
 CMAKE_BUILD_TYPE:STRING=Release
 CMAKE_CUDA_ARCHITECTURES:UNINITIALIZED=86
-CMAKE_CUDA_COMPILER:UNINITIALIZED=/usr/local/cuda-13.1/bin/nvcc
+CMAKE_CUDA_COMPILER:STRING=/usr/local/cuda-13.1/bin/nvcc
 CMAKE_CXX_COMPILER:FILEPATH=/usr/bin/c++
 RAYMMA_BUILD_BENCHMARK:BOOL=ON
 RAYMMA_BUILD_VIEWER:BOOL=OFF

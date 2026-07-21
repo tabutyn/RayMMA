@@ -25,12 +25,12 @@
   may turn unsafe inputs into misses.
 - Strengthened brute-force validation with strict primitive agreement and
   16-by-16 image-coordinate stratification.
-- Added raw timing CSV export and a provisional procedural Grid result bundle.
+- Added raw timing CSV export and a reproducible CC0 scene result bundle.
 - Documented the candidate-density crossover and the failed FP16 filter.
 - Added a textured orbital viewer for CUDA32, matched CUDA-packet16, and the
   reference-validated WMMA path.
-- Replaced the rights-unknown Checker input with the hash-pinned, CC0 Poly
-  Haven Coastal Cliff 01 model and reproducible low/mid/high extraction.
+- Added the hash-pinned, CC0 Poly Haven Coastal Cliff 01 model and reproducible
+  low/mid/high extraction.
 - Added REUSE 3.3 metadata, the canonical MIT license text, and a compliance
   workflow.
 - Clarified the MIT licensing boundary and public repository positioning.

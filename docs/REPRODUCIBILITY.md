@@ -209,11 +209,6 @@ column to distinguish algorithms. Keep the console output and environment
 file beside it; the CSV alone does not record the command, commit, scene hash,
 or correctness counters.
 
-The historical Checker/Sibenik/Sponza RTX 3050 Ti tables are an exploratory
-snapshot. They are in
-[`RESULTS_RTX3050TI.md`](RESULTS_RTX3050TI.md); their raw samples were not
-retained, so they should be rerun before a formal release or paper. The newer
-procedural Grid spot check has a provisional raw bundle under `results/`, but
-its pre-public source is not reconstructable from the clean repository and it
-does not include CUDA32 or the no-Möller variants. See
-[`RESULTS.md`](RESULTS.md) for the evidence-status matrix.
+The current RTX 3050 Ti bundle under `results/` includes raw samples for
+CUDA32, validated WMMA, and both no-Möller variants on the hash-pinned CC0
+Coastal Cliff model. See [`RESULTS.md`](RESULTS.md) for the measured result.

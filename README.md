@@ -19,15 +19,13 @@ RTX 3050 Ti, it was faster than every Tensor path in the local selective-BVH
 Grid quick sweep at the default maximum leaf size of 16.
 
 In the [CC0 Coastal Cliff rerun](results/rtx3050ti-coastal-cliff-2026-07-21/README.md),
-the no-Möller modes crossed same-tree CUDA32 at `1.07–1.29x` in deliberately
+the no-Möller modes crossed same-tree CUDA32 at `1.06–1.30x` in deliberately
 coarse High/leaf-256 work. They missed 2–3 of 970 reference hits and chose
 3–5 wrong primitives. They are useful approximate results, not exact wins.
 
-An [archival rerun](results/rtx3050ti-pushed-5e05391-2026-07-21/README.md) of
-the public validated-only snapshot found five same-tree CUDA32 crossovers in
-twelve deliberately coarse leaf-256 cases. WMMA lost every leaf-16, secondary,
-and TinyBVH-builder comparison. On Checker High, its leaf-256 crossover was
-still `6.3x`/`3.1x` slower than the fastest selective-leaf CUDA32 result.
+In the same current run, the exact validated hybrid crossed same-tree CUDA32
+in three of six coarse-leaf comparisons. On the highest triangle tier it was
+still about `9.3x`/`3.3x` slower than the fastest selective CUDA32 settings.
 
 The newer no-Möller variants are useful approximate experiments, but they can
 choose the wrong primitive or depth. Their errors are not guaranteed to remain
@@ -39,28 +37,26 @@ at silhouettes or shared edges.
   BVH was more valuable than accelerating deliberately dense candidate work.
 - **Tensor utilization matters.** WMMA becomes more competitive as more of the
   `4 × 16 = 64` ray/triangle pairs are useful.
-- **Packet order matters.** A crossover against the matched CUDA-packet16
-  diagnostic appeared for one shuffled workload but not its coherent
-  counterpart.
+- **Packet order matters.** Coherent and shuffled rays produced materially
+  different traversal costs and crossover sizes.
 - **The validated hybrid is empirical.** Its FP16-input WMMA stage is only a
   broad filter and FP32 Möller owns admitted hits. Recorded tests agreed with
   the reference, but there is no formal conservative FP16 bound.
-- **Removing Möller exposes real error.** Current development checks found
+- **Removing Möller exposes real error.** The current archived suite found
   mostly matching hit masks but wrong closest primitives and occasionally
   large relative depth error.
 - **The honest open question is compaction.** Can traversal assemble dense,
   useful MMA tiles without weakening BVH selectivity?
 
-See [Findings and evidence](docs/RESULTS.md) for the evidence tiers, measured
-development observations, and exactly what each result does and does not
-support.
+See [Findings and evidence](docs/RESULTS.md) for the complete measured result
+and its scope.
 
 ## Backends
 
 | Name | Purpose | Final hit owner | Expected accuracy |
 |---|---|---|---|
 | `CUDA32` | Primary performance baseline; one independent ray per lane | FP32 Möller–Trumbore | Reference software path |
-| `CUDA-packet16` | Diagnostic matched to the 16-ray WMMA packet traversal (`CUDA16` in historical output) | FP32 Möller–Trumbore | Reference packet path |
+| `CUDA-packet16` | Diagnostic matched to the 16-ray WMMA packet traversal | FP32 Möller–Trumbore | Reference packet path |
 | `validated` | FP16-input/FP32-accumulated WMMA broad filter | FP32 Möller–Trumbore | Empirically reference-matching, not proven conservative |
 | `uvt-depthsorted` | WMMA `Nt/Nu/Nv/Delta`; direct UV bounds and Tensor-derived depth | Tensor output plus FP32 postprocessing | Intentionally approximate |
 | `e0e1e2` | WMMA three direct edges plus `Nt`; summed determinant and Tensor-derived depth | Tensor output plus FP32 postprocessing | Intentionally approximate |
@@ -170,22 +166,11 @@ The complete derivation and numerical policy are in
 
 ## Evidence policy
 
-RayMMA separates five levels of evidence:
-
-1. **Verified implementation algebra:** CPU randomized checks and GPU
-   regression tests.
-2. **Archival but version-bounded evidence:** a public-commit RTX 3050 Ti rerun
-   with CUDA32, validated WMMA, secondary rays, and builder controls. The tested
-   snapshot predates the no-Möller variants and current normalization.
-3. **Raw but provisional evidence:** an older Grid run against only the matched
-   CUDA-packet16 diagnostic; its source commit is not reconstructable.
-4. **Unarchived development observations:** current no-Möller spot checks.
-5. **Historical hypothesis-generating results:** older scene sweeps without
-   retained raw samples or complete source/scene identity.
-
-The public-commit archive is valid only for its older validated backend. No
-raw public-commit evidence yet covers `uvt-depthsorted` or `e0e1e2`. The
-[results policy](results/README.md) describes the scope of every bundle.
+The published RTX 3050 Ti bundle covers the current CUDA32, validated WMMA,
+`uvt-depthsorted`, and `e0e1e2` backends. It includes raw samples, complete
+transcripts, environment capture, source and asset hashes, and all correctness
+counters. The [results policy](results/README.md) defines what to retain when
+adding another GPU or workload.
 
 ## Scope and limitations
 

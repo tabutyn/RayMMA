@@ -73,9 +73,9 @@ enabled in the default build. Optional scene files must be obtained separately:
 | San Miguel 2.0 | Guillermo M. Leal Llaguno; later archive contributors | CC BY 3.0 | No |
 | [Coastal Cliff 01][coastal-cliff] | Rico Cilliers and Rob Tuytel/Poly Haven | CC0 1.0 | No; fetched and hash-verified on demand |
 
-Coastal Cliff 01 replaces the former user-supplied Checker GLBs. Poly Haven
-states in its [asset license][poly-haven-license] that its assets may be used
-for any purpose and redistributed under CC0. `tools/fetch_open_model.sh`
+Poly Haven states in its [asset license][poly-haven-license] that Coastal
+Cliff 01 may be used for any purpose and redistributed under CC0.
+`tools/fetch_open_model.sh`
 downloads the 1K glTF package from Poly
 Haven's asset server and verifies these SHA-256 values:
 

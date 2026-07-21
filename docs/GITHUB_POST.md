@@ -16,10 +16,10 @@ ordering consistent.
 On an RTX 3050 Ti Laptop GPU:
 
 - With a selective BVH, CUDA Möller–Trumbore was clearly faster. The best
-  configuration was about 7.8× faster for coherent rays and 3.3× faster for
+  configuration was about 9.3× faster for coherent rays and 3.3× faster for
   shuffled rays.
 - When I deliberately made the candidate batches much larger, the approximate
-  Tensor modes reached 1.07–1.29× CUDA performance.
+  Tensor modes reached 1.06–1.30× CUDA performance.
 - That gain was not free: a few hits and closest triangles were wrong, with up
   to 3.28% relative depth error in the measured run.
 

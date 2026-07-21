@@ -17,8 +17,7 @@ welcome when they preserve the controls needed to interpret a result.
    wrong primitives, invalid outputs, and depth error as part of the result.
    Do not call an approximate harness `PASS` an image-correctness pass.
 4. Performance submissions must include CUDA32. The matched CUDA-packet16 path
-   (`CUDA16` in historical output) is an arithmetic diagnostic, not the primary
-   software-tracing baseline.
+   is an arithmetic diagnostic, not the primary software-tracing baseline.
 5. For performance changes, include the exact command, commit, GPU, driver,
    CUDA toolkit, architecture, warmup count, raw samples, and timing scope.
 6. Do not add models, textures, SDK headers, or other third-party material

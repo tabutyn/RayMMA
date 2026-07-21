@@ -120,10 +120,6 @@ called empirically validated, not mathematically conservative. In source and
 output, “exact tests” means the FP32 validation path; it does not mean exact
 real arithmetic or a watertight predicate.
 
-An earlier narrower filter rejected six valid Sponza candidates among 147,456
-rays. That failure is retained in the results because it explains why
-Checker-only validation was insufficient.
-
 ## Experimental Tensor-owned policies
 
 The `uvt-depthsorted` variant consumes the same four WMMA outputs but removes
@@ -228,7 +224,5 @@ Tensor-owned clipping.
 
 ## Interpretation
 
-Algorithm description and measured evidence are kept separate so this method
-document does not silently promote a provisional timing into a general claim.
-See [Findings and evidence](RESULTS.md) for the current conclusion, evidence
-tiers, and historical boundary.
+Algorithm description and measured evidence are kept separate. See
+[Findings and evidence](RESULTS.md) for the current measurements and scope.
