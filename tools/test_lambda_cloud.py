@@ -77,6 +77,36 @@ class ResponseQueue:
 
 
 class LambdaCloudTests(unittest.TestCase):
+    def test_supported_gpu_priority_and_exact_model_tokens(self) -> None:
+        types = instance_types()
+        types.update(
+            {
+                "gpu_1x_a10": {
+                    "instance_type": {
+                        "name": "gpu_1x_a10",
+                        "description": "1x NVIDIA A10",
+                        "price_cents_per_hour": 129,
+                        "specs": {"gpus": 1},
+                    },
+                    "regions_with_capacity_available": [{"name": "us-west-1"}],
+                },
+                "gpu_1x_h100": {
+                    "instance_type": {
+                        "name": "gpu_1x_h100",
+                        "description": "1x NVIDIA H100",
+                        "price_cents_per_hour": 299,
+                        "specs": {"gpus": 1},
+                    },
+                    "regions_with_capacity_available": [{"name": "us-west-1"}],
+                },
+            }
+        )
+        choices = cloud.available_cloud_gpus(types)
+        self.assertEqual(
+            [item["model"] for item in choices], ["h100", "a100", "a10"]
+        )
+        self.assertEqual(cloud.choose_capacity(types, None, None)["model"], "h100")
+
     def test_selects_only_one_a100_and_excludes_unprotected_region(self) -> None:
         choices = cloud.available_a100s(instance_types(("us-south-1", "us-west-1")))
         self.assertEqual([item["name"] for item in choices], ["gpu_1x_a100"])

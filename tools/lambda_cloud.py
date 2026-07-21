@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Launch, benchmark, retrieve, and terminate a Lambda Cloud A100."""
+"""Launch, benchmark, retrieve, and terminate a Lambda Cloud GPU."""
 
 from __future__ import annotations
 
@@ -83,6 +83,9 @@ class LambdaAPI:
         headers = {
             "Accept": "application/json",
             "Authorization": f"Bearer {self.api_key}",
+            # Lambda's Cloudflare edge rejects urllib's default
+            # ``Python-urllib/*`` signature before the API sees the request.
+            "User-Agent": "RayMMA-Lambda-Runner/1.0 (+https://github.com/tfharris/RayMMA)",
         }
         if data is not None:
             headers["Content-Type"] = "application/json"
@@ -130,7 +133,10 @@ def region_name(value: Any) -> str:
     return str(value or "")
 
 
-def available_a100s(instance_types: dict[str, Any]) -> list[dict[str, Any]]:
+GPU_PRIORITY = ("b200", "h100", "a100", "a10")
+
+
+def available_cloud_gpus(instance_types: dict[str, Any]) -> list[dict[str, Any]]:
     choices: list[dict[str, Any]] = []
     for key, record in instance_types.items():
         details = record.get("instance_type", {})
@@ -139,6 +145,7 @@ def available_a100s(instance_types: dict[str, Any]) -> list[dict[str, Any]]:
             str(details.get(field, ""))
             for field in ("name", "description", "gpu_description")
         ).lower()
+        tokens = set(re.sub(r"[^a-z0-9]+", " ", text).split())
         specs = details.get("specs", {})
         try:
             gpu_count = int(specs.get("gpus", 0))
@@ -150,38 +157,52 @@ def available_a100s(instance_types: dict[str, Any]) -> list[dict[str, Any]]:
             if region_name(region)
             and region_name(region) not in FIREWALL_UNSUPPORTED_REGIONS
         ]
-        if "a100" not in text or gpu_count != 1 or not regions:
+        model = next((item for item in GPU_PRIORITY if item in tokens), None)
+        if model is None or gpu_count != 1 or not regions:
             continue
         choices.append(
             {
                 "name": name,
                 "description": str(details.get("description", "")),
-                "gpu": str(details.get("gpu_description", "A100")),
+                "gpu": str(details.get("gpu_description", model.upper())),
+                "model": model,
                 "price_cents_per_hour": int(
                     details.get("price_cents_per_hour", 0) or 0
                 ),
                 "regions": sorted(regions),
             }
         )
-    return sorted(choices, key=lambda item: (item["price_cents_per_hour"], item["name"]))
+    return sorted(
+        choices,
+        key=lambda item: (
+            GPU_PRIORITY.index(item["model"]),
+            item["price_cents_per_hour"],
+            item["name"],
+        ),
+    )
+
+
+def available_a100s(instance_types: dict[str, Any]) -> list[dict[str, Any]]:
+    """Backward-compatible filtered view used by older callers."""
+    return [item for item in available_cloud_gpus(instance_types) if item["model"] == "a100"]
 
 
 def choose_capacity(
     instance_types: dict[str, Any], requested_type: str | None, requested_region: str | None
 ) -> dict[str, Any]:
-    choices = available_a100s(instance_types)
+    choices = available_cloud_gpus(instance_types)
     if requested_type:
         choices = [item for item in choices if item["name"] == requested_type]
         if not choices:
             raise CloudError(
-                f"{requested_type!r} is not an available 1xA100 type. "
+                f"{requested_type!r} is not an available supported single-GPU type. "
                 "Run the inventory command to inspect live capacity."
             )
     if requested_region:
         choices = [item for item in choices if requested_region in item["regions"]]
     if not choices:
         suffix = f" in {requested_region}" if requested_region else ""
-        raise CloudError(f"No 1xA100 capacity is currently available{suffix}.")
+        raise CloudError(f"No supported single-GPU capacity is currently available{suffix}.")
     choice = choices[0].copy()
     choice["region"] = requested_region or choice["regions"][0]
     return choice
@@ -560,7 +581,7 @@ def retrieve(
     remote_dir: str,
     local_dir: Path,
 ) -> tuple[Path, Path]:
-    archive_name = "raymma-a100-results.tar.gz"
+    archive_name = "raymma-cloud-results.tar.gz"
     digest_name = f"{archive_name}.sha256"
     remote_build = f"/home/ubuntu/{remote_dir}/build"
     command = [
@@ -653,7 +674,7 @@ def redact_sensitive(value: Any) -> Any:
 def inventory_command(args: argparse.Namespace) -> int:
     api = api_from_args(args)
     payload = {
-        "a100_capacity": available_a100s(api.request("GET", "instance-types")),
+        "gpu_capacity": available_cloud_gpus(api.request("GET", "instance-types")),
         "instances": api.request("GET", "instances"),
         "images": api.request("GET", "images"),
         "ssh_keys": api.request("GET", "ssh-keys"),
@@ -663,11 +684,11 @@ def inventory_command(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps(redact_sensitive(payload), indent=2, sort_keys=True))
         return 0
-    print("Available 1xA100 capacity:")
-    for item in payload["a100_capacity"]:
+    print("Available supported single-GPU capacity:")
+    for item in payload["gpu_capacity"]:
         price = item["price_cents_per_hour"] / 100
         print(f"  {item['name']}: ${price:.2f}/h; {', '.join(item['regions'])}")
-    if not payload["a100_capacity"]:
+    if not payload["gpu_capacity"]:
         print("  none")
     print("Running instances:")
     for instance in payload["instances"]:
@@ -753,7 +774,7 @@ def run_command(args: argparse.Namespace) -> int:
 
     run_stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
     run_id = uuid.uuid4().hex
-    instance_name = args.name or f"raymma-a100-{run_stamp.lower()}-{run_id[:8]}"
+    instance_name = args.name or f"raymma-gpu-{run_stamp.lower()}-{run_id[:8]}"
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", instance_name):
         raise CloudError(
             "--name must be 1-64 characters using letters, digits, dot, dash, "
@@ -898,7 +919,7 @@ def run_command(args: argparse.Namespace) -> int:
 
         benchmark = (
             f"cd {shlex.quote(remote_dir)} && "
-            f"./tools/run_a100.sh --profile {shlex.quote(args.profile)}"
+            f"./tools/run_cloud_gpu.sh --profile {shlex.quote(args.profile)}"
         )
         benchmark_status = run_ssh(
             address,
@@ -1042,7 +1063,10 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="accept workspace-global SSH sources outside --ssh-cidr",
     )
-    run.add_argument("--instance-type", help="exact live 1xA100 type; auto-select by default")
+    run.add_argument(
+        "--instance-type",
+        help="exact live supported single-GPU type; auto-select B200/H100/A100/A10",
+    )
     run.add_argument("--region", help="exact region; auto-select from live capacity by default")
     run.add_argument("--image-family", default=DEFAULT_IMAGE_FAMILY)
     run.add_argument("--repository", default=DEFAULT_REPOSITORY)

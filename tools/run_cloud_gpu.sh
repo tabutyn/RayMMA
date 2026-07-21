@@ -8,16 +8,17 @@ cd "$ROOT"
 
 usage() {
     cat <<'EOF'
-usage: ./tools/run_a100.sh [--profile quick|archive]
+usage: ./tools/run_cloud_gpu.sh [--profile quick|archive]
 
 Build RayMMA for SM 80, run the procedural Grid evidence suite, and write:
-  build/raymma-a100-results.tar.gz
-  build/raymma-a100-results.tar.gz.sha256
+  build/raymma-cloud-results.tar.gz
+  build/raymma-cloud-results.tar.gz.sha256
 
 quick    128x72, five timing samples, primary rays
 archive  256x144, nine timing samples, primary and secondary rays (default)
 
-Set RAYMMA_ALLOW_NON_A100=1 only for workflow testing on another SM 80 GPU.
+The host must expose exactly one B200, H100, A100, or A10 GPU. CMake's
+native architecture mode targets the GPU actually rented.
 EOF
 }
 
@@ -67,21 +68,24 @@ fi
 
 mapfile -t gpu_names < <(nvidia-smi --query-gpu=name --format=csv,noheader)
 if ((${#gpu_names[@]} != 1)); then
-    printf 'Expected a 1xA100 host; nvidia-smi reports %d physical GPUs.\n' \
+    printf 'Expected a single-GPU host; nvidia-smi reports %d physical GPUs.\n' \
         "${#gpu_names[@]}" >&2
     exit 2
 fi
-if [[ "${gpu_names[0]}" != *A100* && "${RAYMMA_ALLOW_NON_A100:-0}" != 1 ]]; then
-    printf 'Expected NVIDIA A100 as CUDA device 0, found: %s\n' \
-        "${gpu_names[0]}" >&2
-    exit 2
-fi
+case "${gpu_names[0]}" in
+    *B200*|*H100*|*A100*|*A10*) ;;
+    *)
+        printf 'Expected B200, H100, A100, or A10, found: %s\n' \
+            "${gpu_names[0]}" >&2
+        exit 2
+        ;;
+esac
 
-BUILD_DIR="$ROOT/build/a100"
+BUILD_DIR="$ROOT/build/core"
 RUN_STAMP="$(date -u '+%Y%m%dT%H%M%SZ')"
 COMMIT="$(git -C "$ROOT" rev-parse --short=12 HEAD)"
-RESULT_DIR="$ROOT/build/raymma-a100-$RUN_STAMP-$COMMIT"
-ARCHIVE="$ROOT/build/raymma-a100-results.tar.gz"
+RESULT_DIR="$ROOT/build/raymma-cloud-$RUN_STAMP-$COMMIT"
+ARCHIVE="$ROOT/build/raymma-cloud-results.tar.gz"
 DIGEST="$ARCHIVE.sha256"
 mkdir -p "$RESULT_DIR"
 
@@ -125,7 +129,8 @@ run_logged() {
     "$@" 2>&1 | tee "$RESULT_DIR/$label.log"
 }
 
-printf 'RayMMA A100 evidence run\n'
+printf 'RayMMA cloud GPU evidence run\n'
+printf 'gpu=%s\n' "${gpu_names[0]}"
 printf 'profile=%s\ncommit=%s\nresult_dir=%s\n' \
     "$PROFILE" "$COMMIT" "$RESULT_DIR"
 
@@ -136,15 +141,15 @@ git -C "$ROOT" status --short > "$RESULT_DIR/git-status.txt"
     git ls-files -z | sort -z | xargs -0 sha256sum
 ) > "$RESULT_DIR/source-sha256.txt"
 
-run_logged configure cmake --preset a100
-run_logged build cmake --build --preset a100 --parallel
+run_logged configure cmake --preset core
+run_logged build cmake --build --preset core --parallel
 mkdir -p "$RESULT_DIR/bin"
 cp "$BUILD_DIR/tensor-wide-bvh-bench" "$RESULT_DIR/bin/"
 cp "$BUILD_DIR/tensor-ray-correctness" "$RESULT_DIR/bin/"
 ldd "$BUILD_DIR/tensor-wide-bvh-bench" > "$RESULT_DIR/benchmark-ldd.txt"
 "$ROOT/tools/capture_environment.sh" "$BUILD_DIR" \
     > "$RESULT_DIR/environment.txt" 2>&1
-run_logged tests ctest --preset a100
+run_logged tests ctest --preset core
 
 BENCH="$BUILD_DIR/tensor-wide-bvh-bench"
 COMMON=(--scene Grid --leaf-sweep)
