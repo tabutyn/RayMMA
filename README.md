@@ -77,11 +77,13 @@ ctest --preset core
 The default procedural Grid scene is generated in source and needs no
 downloaded model, Blender, or TinyBVH.
 
-For an NVIDIA A100, `./tools/run_a100.sh --profile archive` builds for SM 80,
-runs the primary and secondary Grid leaf sweeps, and creates one checksummed
-result tarball. [Running on Lambda Cloud](docs/LAMBDA_CLOUD.md) documents the
-API-only path that selects live 1×A100 capacity, launches the instance, runs
-that helper, downloads the archive, verifies it, and terminates the rental.
+On a supported single B200, H100, A100, or A10,
+`./tools/run_cloud_gpu.sh --profile archive` builds for the native CUDA
+architecture, runs the primary and secondary Grid leaf sweeps, and creates a
+checksummed result tarball. [Running on Lambda Cloud](docs/LAMBDA_CLOUD.md)
+documents the API-only launch, retrieval, verification, and termination path.
+The repository retains the complete
+[paid Lambda A10 evidence run](results/lambda-a10-2026-07-21/README.md).
 
 For a high-density real mesh with unambiguous redistribution rights, fetch
 Poly Haven's CC0 Coastal Cliff 01 and let Blender derive three benchmark tiers:
@@ -169,11 +171,11 @@ The complete derivation and numerical policy are in
 
 ## Evidence policy
 
-The published RTX 3050 Ti bundle covers the current CUDA32, validated WMMA,
-`uvt-depthsorted`, and `e0e1e2` backends. It includes raw samples, complete
-transcripts, environment capture, source and asset hashes, and all correctness
-counters. The [results policy](results/README.md) defines what to retain when
-adding another GPU or workload.
+The published RTX 3050 Ti and paid Lambda A10 bundles cover the current
+CUDA32, validated WMMA, `uvt-depthsorted`, and `e0e1e2` backends. They include
+raw samples, complete transcripts, environment capture, source hashes, and
+all correctness counters. The [results policy](results/README.md) defines what
+to retain when adding another GPU or workload.
 
 ## Scope and limitations
 
@@ -181,7 +183,6 @@ This repository does **not** currently provide:
 
 - an RT Core, OptiX, Vulkan RT, or DXR comparison;
 - a compressed production GPU traversal implementation;
-- evidence across multiple GPU architectures;
 - a raw all-pairs `N rays × M triangles` microbenchmark sweep;
 - a formal FP16 error bound or watertight approximate predicate;
 - a claim of algorithmic novelty; or
@@ -206,7 +207,7 @@ TinyBVH's production traversal kernel.
 - [`docs/RESULTS.md`](docs/RESULTS.md) — current findings and evidence status.
 - [`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md) — complete commands and
   measurement contract.
-- [`docs/LAMBDA_CLOUD.md`](docs/LAMBDA_CLOUD.md) — scripted Lambda Cloud A100
+- [`docs/LAMBDA_CLOUD.md`](docs/LAMBDA_CLOUD.md) — scripted Lambda Cloud GPU
   launch, benchmark, result retrieval, and termination.
 - [`docs/RELATED_WORK.md`](docs/RELATED_WORK.md) — related work and novelty
   boundary.

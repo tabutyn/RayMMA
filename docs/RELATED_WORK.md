@@ -36,9 +36,10 @@ compressed production GPU traversal kernel. TinyBVH is used only as an
 optional established hierarchy builder; its output is converted to RayMMA's
 uncompressed BVH8 traversal format.
 
-The repository also lacks a raw all-pairs `N rays × M triangles` sweep and
-cross-generation GPU results. Those are necessary before drawing a broader
-architectural conclusion.
+The repository still lacks a raw all-pairs `N rays × M triangles` sweep. Its
+RTX 3050 Ti and paid Lambda A10 measurements provide two Ampere data points,
+not the cross-generation coverage needed for a broader architectural
+conclusion.
 
 Before a paper or patent claim:
 
@@ -47,6 +48,6 @@ Before a paper or patent claim:
 2. compare equations and data layouts claim-by-claim, not only titles;
 3. retain the new CUDA32, TinyBVH, and true-secondary controls across
    standard scenes and larger sample counts;
-4. test multiple GPU generations, including A100 or H100; and
+4. test additional GPU generations, including H100 or B200; and
 5. obtain qualified IP advice if patent protection matters before public
    disclosure.

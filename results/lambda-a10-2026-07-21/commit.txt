@@ -1,0 +1,7 @@
+commit 0c89dd87c021a20c7019e74f9e2b373b66661157
+Author:     Thomas Butyn <tabutyn@gmail.com>
+AuthorDate: Tue Jul 21 17:55:02 2026 -0230
+Commit:     Thomas Butyn <tabutyn@gmail.com>
+CommitDate: Tue Jul 21 17:55:02 2026 -0230
+
+    fix cloud runner executable mode

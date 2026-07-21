@@ -31,33 +31,29 @@ toolkit).
 The default procedural Grid path does not require Blender, TinyBVH, or
 downloaded scene assets.
 
-## A100 evidence archive
+## Cloud GPU evidence archive
 
-The A100 preset fixes the generated code target to SM 80:
-
-```sh
-cmake --preset a100
-cmake --build --preset a100 --parallel
-ctest --preset a100
-```
-
-On a clean checkout running on an A100, the archive helper performs those
-steps, captures the environment and source hashes, runs all three Tensor
-variants over the procedural Grid leaf sweep, and packages logs, raw CSVs,
-checksums, and the built executables:
+On a clean checkout running on a single B200, H100, A100, or A10, the archive
+helper uses the `core` preset's native CUDA architecture, captures environment
+and source hashes, runs all three Tensor variants over the procedural Grid
+leaf sweep, and packages logs, raw CSVs, checksums, and built executables:
 
 ```sh
-./tools/run_a100.sh --profile quick
+./tools/run_cloud_gpu.sh --profile quick
 # or the 256x144 primary + secondary archive suite:
-./tools/run_a100.sh --profile archive
-(cd build && sha256sum -c raymma-a100-results.tar.gz.sha256)
+./tools/run_cloud_gpu.sh --profile archive
+(cd build && sha256sum -c raymma-cloud-results.tar.gz.sha256)
 ```
 
-The fixed output paths are `build/raymma-a100-results.tar.gz` and its
+The fixed output paths are `build/raymma-cloud-results.tar.gz` and its
 `.sha256` sidecar. A failing test or benchmark still produces a partial
 archive with `exit-code.txt` when packaging remains possible. The helper
-rejects dirty checkouts and non-A100 GPUs so the default artifact cannot be
-mislabelled.
+rejects dirty checkouts, multi-GPU hosts, and GPUs outside the supported set.
+The environment capture records the exact model and native architecture, so
+the artifact is not presented as evidence from another GPU.
+
+The retained [Lambda A10 run](../results/lambda-a10-2026-07-21/README.md) is
+a complete example of this archive contract.
 
 For API-driven rental, SSH, execution, retrieval, and termination, see
 [Running on Lambda Cloud](LAMBDA_CLOUD.md).

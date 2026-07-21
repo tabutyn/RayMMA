@@ -7,7 +7,42 @@ It shows a narrower systems result: dense ray/triangle candidate batches can
 benefit from WMMA, while a selective BVH plus ordinary CUDA32
 Möller–Trumbore remains the fastest complete configuration tested.
 
-## Reproduced result
+## Paid Lambda A10 archive run
+
+On July 21, 2026, the public repository was cloned and built on a paid Lambda
+Cloud `gpu_1x_a10` rental. The run used an NVIDIA A10 (compute 8.6), CUDA
+12.8.93, the procedural 32,768-triangle Grid, 256x144 rays, six warmups, nine
+retained samples, and maximum leaf sizes from 4 through 256. All 16 tests and
+the remote archive runner passed. The verified result archive was downloaded
+before the Lambda API confirmed termination. Runtime through confirmed
+termination was 9.3 minutes; the launch price was $1.29/hour and the helper's
+compute estimate was $0.21 before tax.
+
+The A10 result strengthens the narrow conclusion rather than reversing it.
+The exact `validated` hybrid beat same-tree CUDA32 only for coherent primary
+rays at leaf 128 (1.075x) and leaf 256 (1.044x). It lost for shuffled primary
+rays and every measured secondary-ray case. With selective leaves, CUDA32
+Möller–Trumbore remained clearly faster.
+
+The no-Möller Tensor-owned modes crossed over more strongly when the BVH was
+made deliberately dense. Their best median integrated results were:
+
+| Workload | `uvt-depthsorted` | `e0e1e2` |
+|---|---:|---:|
+| Primary, coherent | 1.638x at leaf 128 | 1.628x at leaf 128 |
+| Primary, shuffled | 0.955x at leaf 128 | 0.964x at leaf 128 |
+| Secondary, pixel-ordered | 1.307x at leaf 64 | 1.305x at leaf 64 |
+| Secondary, shuffled | 1.229x at leaf 128 | 1.223x at leaf 128 |
+
+Those approximate paths had low but nonzero disagreement. Across the A10
+archive, maximum false-negative rates ranged up to 0.4710% of reference hits
+and maximum wrong-primitive rates ranged up to 0.7849%. The exact maxima per
+variant and ray set, every raw timing sample, complete console transcripts,
+environment, tests, source hashes, executables, and the original verified
+archive are retained in the
+[Lambda A10 evidence bundle](../results/lambda-a10-2026-07-21/README.md).
+
+## RTX 3050 Ti Coastal Cliff reproduced result
 
 The current standalone source was rebuilt with CUDA 13.1 and the hash-pinned,
 CC0 Poly Haven Coastal Cliff 01 model. The model produced 8,516, 71,312, and
@@ -67,7 +102,8 @@ source manifest.
 
 ## Scope
 
-This is a software BVH comparison on one RTX 3050 Ti Laptop GPU. The strongest
+This is a software BVH comparison on an RTX 3050 Ti Laptop GPU and an NVIDIA
+A10 rental. The strongest
 implemented baseline is independent-ray CUDA32; the repository does not
 compare against RT Cores, OptiX, Vulkan RT, or DXR. Results on other GPU
 generations remain useful future measurements.

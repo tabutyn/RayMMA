@@ -1,0 +1,28 @@
+Preset CMake variables:
+
+  CMAKE_BUILD_TYPE="Release"
+  RAYMMA_BUILD_BENCHMARK="ON"
+  RAYMMA_ENABLE_EXTERNAL_SCENES="OFF"
+  RAYMMA_ENABLE_TINYBVH="OFF"
+
+-- The CXX compiler identification is GNU 13.3.0
+-- The CUDA compiler identification is NVIDIA 12.8.93
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Detecting CUDA compiler ABI info
+-- Detecting CUDA compiler ABI info - done
+-- Check for working CUDA compiler: /usr/bin/nvcc - skipped
+-- Detecting CUDA compile features
+-- Detecting CUDA compile features - done
+-- Found CUDAToolkit: /usr/include (found version "12.8.93") 
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Found Python3: /usr/bin/python3 (found version "3.12.3") found components: Interpreter 
+-- RayMMA: benchmark=ON, viewer=OFF, TinyBVH=OFF, external scenes=OFF
+-- Configuring done (6.5s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/ubuntu/RayMMA-88c70438cff7/build/core

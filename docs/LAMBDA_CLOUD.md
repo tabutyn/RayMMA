@@ -3,13 +3,13 @@
 `tools/lambda_cloud.py` automates the useful lifecycle through Lambda's
 official REST API:
 
-1. inspect live 1×A100 capacity and prices;
+1. inspect live single-GPU B200, H100, A100, and A10 capacity and prices;
 2. upload a dedicated SSH **public** key if needed;
 3. create or reuse a region-specific TCP/22 ruleset for your source CIDR;
-4. launch one A100 with no persistent filesystem;
+4. launch one supported GPU with no persistent filesystem;
 5. wait for the instance and SSH;
 6. install only missing build packages, clone the public RayMMA ref, and run
-   `tools/run_a100.sh`;
+   `tools/run_cloud_gpu.sh`;
 7. download and verify the result tarball, with bounded retries after an
    interrupted SSH run; and
 8. terminate through the API and poll for confirmation, including after most
@@ -102,11 +102,12 @@ python3 tools/lambda_cloud.py run \
   --yes
 ```
 
-Selection is based on the live `/instance-types` response. By default the
-helper chooses the least expensive available type whose description is A100
-and whose GPU count is exactly one. Use `--instance-type` and `--region` to
-pin a choice shown by `inventory`. It will not silently rent a multi-GPU
-machine.
+Selection is based on the live `/instance-types` response. The helper accepts
+only types whose reported GPU count is exactly one and selects in the explicit
+priority order B200, H100, A100, then A10; price and type name break ties
+within a model. Use `--instance-type` and `--region` to pin a choice shown by
+`inventory`. It will not silently rent a multi-GPU machine or a GPU family
+outside that list.
 
 The default base image is `lambda-stack-24-04`: it supplies the NVIDIA driver
 and CUDA toolkit, while Ubuntu 24.04 supplies a new enough CMake for RayMMA.
@@ -120,10 +121,10 @@ The public checkout defaults to `https://github.com/tabutyn/RayMMA.git` at
 is copied to the instance.
 
 The rental builds from source instead of trusting a locally cross-compiled
-binary. CUDA executables still depend on the rental's driver/toolkit
-compatibility, while this project is small enough that native compilation is
-cheap. The exact SM 80 executables are included in the downloaded evidence
-archive for later inspection.
+binary. The `core` preset selects the rental GPU's native CUDA architecture.
+CUDA executables still depend on driver/toolkit compatibility, while this
+project is small enough that native compilation is cheap. The exact binaries
+are included in the downloaded evidence archive for later inspection.
 
 ## Results on your computer
 
@@ -132,13 +133,13 @@ Each run creates `lambda-results/<instance-name>/` containing:
 - `launch-plan.json` and the instance ID;
 - a dedicated `known_hosts` file;
 - the remote console transcript;
-- `raymma-a100-results.tar.gz`; and
-- `raymma-a100-results.tar.gz.sha256`.
+- `raymma-cloud-results.tar.gz`; and
+- `raymma-cloud-results.tar.gz.sha256`.
 
 On a successful transfer, the helper verifies SHA-256 locally before
 termination. Inside the archive are the commit and source hashes, environment,
 CMake and CTest logs, raw CSV samples, full benchmark transcripts, exit code,
-and built SM 80 executables. The `archive` profile covers primary and
+and native-architecture executables. The `archive` profile covers primary and
 deterministic secondary rays for `validated`, `uvt-depthsorted`, and `e0e1e2`
 over the procedural Grid leaf sweep. It downloads no geometry or texture
 assets.
@@ -165,7 +166,16 @@ key-only authentication. The helper will not make that account-wide choice
 implicitly.
 
 Lambda documents that firewall rules do not apply in `us-south-1`, so the
-helper excludes that region from automatic and explicit A100 selection.
+helper excludes that region from automatic and explicit GPU selection.
+
+## Retained paid run
+
+The [July 21, 2026 Lambda A10 evidence bundle](../results/lambda-a10-2026-07-21/README.md)
+records a complete paid run of this workflow. Lambda launched one A10 at
+$1.29/hour, all 16 tests and the archive suite passed, the archive was
+downloaded and verified, and termination was confirmed. The measured
+lifecycle was 9.3 minutes with a helper estimate of $0.21 before tax. A
+separate post-run inventory query showed no running instances.
 
 ## Failure and billing safety
 
