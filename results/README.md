@@ -4,6 +4,8 @@ Publish raw measurements, not hand-copied medians alone.
 
 The retained evidence bundles are:
 
+- the [paid Lambda Cloud A100 archive run](lambda-a100-2026-07-21/README.md),
+  built natively for SM80 with the complete primary and secondary suite;
 - the [paid Lambda Cloud A10 archive run](lambda-a10-2026-07-21/README.md),
   with all 16 tests, primary and secondary procedural Grid leaf sweeps, raw
   nine-sample CSVs, complete transcripts, machine/source provenance, built

@@ -1,0 +1,42 @@
+captured_utc=2026-07-21T21:02:50Z
+repository=RayMMA
+publication_note=Inspect this output for private paths and filenames before sharing.
+commit=f6e767fe53f28abd2842ce994875a8c2ca0e1d98
+describe=f6e767f
+status_begin
+?? build/
+status_end
+
+[system]
+Linux 6.8.0-1046-nvidia x86_64 GNU/Linux
+Architecture:                            x86_64
+CPU(s):                                  30
+Model name:                              AMD EPYC 7J13 64-Core Processor
+
+[gpu]
+NVIDIA A100-SXM4-40GB, 40960 MiB, 580.105.08, P0, 400.00 W, 210 MHz, 1215 MHz
+
+[toolchain]
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2025 NVIDIA Corporation
+Built on Fri_Feb_21_20:23:50_PST_2025
+Cuda compilation tools, release 12.8, V12.8.93
+Build cuda_12.8.r12.8/compiler.35583870_0
+cmake version 3.28.3
+
+CMake suite maintained and supported by Kitware (kitware.com/cmake).
+c++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+Copyright (C) 2023 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+Python 3.12.3
+
+[cmake-cache]
+CMAKE_BUILD_TYPE:STRING=Release
+CMAKE_CUDA_COMPILER:FILEPATH=/usr/bin/nvcc
+CMAKE_CXX_COMPILER:FILEPATH=/usr/bin/c++
+RAYMMA_BUILD_BENCHMARK:BOOL=ON
+RAYMMA_BUILD_VIEWER:BOOL=OFF
+RAYMMA_ENABLE_EXTERNAL_SCENES:BOOL=OFF
+RAYMMA_ENABLE_TINYBVH:BOOL=OFF

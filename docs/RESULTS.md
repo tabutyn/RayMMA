@@ -62,6 +62,23 @@ The complete [Lambda H100 evidence bundle](../results/lambda-h100-2026-07-21/REA
 contains all raw samples, transcripts, tests, environment and source
 provenance, executables, checksums, and the original verified archive.
 
+## Paid Lambda A100 archive run
+
+The final July 21 cloud run used an NVIDIA A100-SXM4-40GB at compute
+capability 8.0. All 16 tests passed, the archive was downloaded and verified,
+termination was confirmed, and a separate inventory query reported no running
+instances. The measured lifecycle was 10.2 minutes at $1.99/hour, for a helper
+estimate of $0.36 before tax.
+
+The exact `validated` hybrid crossed integrated CUDA32 only once: 1.024x for
+coherent primary rays at leaf 128. It remained slower for shuffled primary
+rays and all secondary-ray cases. Approximate modes reached 1.72x coherent
+primary, 1.17x shuffled primary, and 1.19x ordered secondary at dense leaves.
+
+The complete [Lambda A100 evidence bundle](../results/lambda-a100-2026-07-21/README.md)
+retains every raw sample and correctness counter alongside the environment,
+tests, source hashes, executables, checksums, and original verified archive.
+
 ## RTX 3050 Ti Coastal Cliff reproduced result
 
 The current standalone source was rebuilt with CUDA 13.1 and the hash-pinned,
@@ -123,7 +140,7 @@ source manifest.
 ## Scope
 
 This is a software BVH comparison on an RTX 3050 Ti Laptop GPU plus paid
-NVIDIA A10 and H100 rentals. The strongest
+NVIDIA A10, A100, and H100 rentals. The strongest
 implemented baseline is independent-ray CUDA32; the repository does not
 compare against RT Cores, OptiX, Vulkan RT, or DXR. Results on other GPU
 generations remain useful future measurements.

@@ -82,9 +82,10 @@ On a desired single B200 or A100,
 architecture, runs the primary and secondary Grid leaf sweeps, and creates a
 checksummed result tarball. [Running on Lambda Cloud](docs/LAMBDA_CLOUD.md)
 documents the API-only launch, retrieval, verification, and termination path.
-The repository retains the complete
-[paid Lambda A10](results/lambda-a10-2026-07-21/README.md) and
-[paid Lambda H100](results/lambda-h100-2026-07-21/README.md) evidence runs.
+The repository retains complete paid Lambda
+[A10](results/lambda-a10-2026-07-21/README.md),
+[A100](results/lambda-a100-2026-07-21/README.md), and
+[H100](results/lambda-h100-2026-07-21/README.md) evidence runs.
 
 For a high-density real mesh with unambiguous redistribution rights, fetch
 Poly Haven's CC0 Coastal Cliff 01 and let Blender derive three benchmark tiers:
@@ -172,7 +173,7 @@ The complete derivation and numerical policy are in
 
 ## Evidence policy
 
-The published RTX 3050 Ti and paid Lambda A10/H100 bundles cover the current
+The published RTX 3050 Ti and paid Lambda A10/A100/H100 bundles cover the current
 CUDA32, validated WMMA, `uvt-depthsorted`, and `e0e1e2` backends. They include
 raw samples, complete transcripts, environment capture, source hashes, and
 all correctness counters. The [results policy](results/README.md) defines what
