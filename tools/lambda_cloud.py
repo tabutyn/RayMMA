@@ -201,6 +201,19 @@ def choose_capacity(
     return choice
 
 
+def enforce_price_cap(choice: dict[str, Any], maximum_cents: int | None) -> None:
+    if maximum_cents is None:
+        return
+    if maximum_cents <= 0:
+        raise CloudError("--max-price-cents must be a positive integer.")
+    actual = int(choice["price_cents_per_hour"])
+    if actual > maximum_cents:
+        raise CloudError(
+            f"Live price ${actual / 100:.2f}/h exceeds the unattended cap "
+            f"${maximum_cents / 100:.2f}/h."
+        )
+
+
 def validate_image(images: list[dict[str, Any]], family: str, region: str) -> None:
     matching = [
         image
@@ -741,6 +754,7 @@ def run_command(args: argparse.Namespace) -> int:
 
     instance_types = api.request("GET", "instance-types")
     choice = choose_capacity(instance_types, args.instance_type, args.region)
+    enforce_price_cap(choice, args.max_price_cents)
     images = api.request("GET", "images")
     validate_image(images, args.image_family, choice["region"])
     if (
@@ -1059,6 +1073,11 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument(
         "--instance-type",
         help="exact live supported single-GPU type; auto-select B200 only",
+    )
+    run.add_argument(
+        "--max-price-cents",
+        type=int,
+        help="refuse launch when the live hourly price exceeds this many cents",
     )
     run.add_argument("--region", help="exact region; auto-select from live capacity by default")
     run.add_argument("--image-family", default=DEFAULT_IMAGE_FAMILY)

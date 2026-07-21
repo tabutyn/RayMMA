@@ -111,16 +111,16 @@ LAMBDA_API_KEY_FILE="$HOME/RayMMA.txt" \
 ```
 
 The watcher uses one local lock, randomized three-to-seven-minute intervals,
-and the B200 type only. If capacity appears, it runs the same archive workflow
-once and exits after verified retrieval and confirmed termination. Progress is
-written to `lambda-results/b200-watch.state`; redirect stdout/stderr to a log
-when launching it detached. The watcher cannot survive the local computer
-powering off or losing network access.
+the B200 type only, and a hard $7.00/hour live-price ceiling. If capacity
+appears within that cap, it runs the same archive workflow once and exits after
+verified retrieval and confirmed termination. Progress is written to
+`lambda-results/b200-watch.state`; redirect stdout/stderr to a log when
+launching it detached. The watcher cannot survive the local computer powering
+off or losing network access.
 
 Selection is based on the live `/instance-types` response. The helper accepts
-only types whose reported GPU count is exactly one and selects in the explicit
-the B200 family only; price and type name break ties
-within a model. Use `--instance-type` and `--region` to pin a choice shown by
+only the B200 family with a reported GPU count of exactly one; price and type
+name break ties. Use `--instance-type` and `--region` to pin a choice shown by
 `inventory`. It will not silently rent a multi-GPU machine or a GPU family
 outside that list.
 

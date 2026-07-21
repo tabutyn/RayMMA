@@ -22,9 +22,9 @@ Options:
   --max-interval N   maximum seconds between checks (default: 420)
   --output-dir PATH  downloaded run directory root
 
-The watcher polls only for a single B200. If one appears, it runs the archive
-profile once, verifies retrieval, terminates the rental, and exits. It never
-falls back to another GPU.
+The watcher polls only for a single B200. If one appears at no more than
+$7.00/hour, it runs the archive profile once, verifies retrieval, terminates
+the rental, and exits. It never falls back to another GPU.
 EOF
 }
 
@@ -102,6 +102,7 @@ while (( $(date +%s) < DEADLINE )); do
         if LAMBDA_API_KEY="$API_KEY_VALUE" PYTHONUNBUFFERED=1 \
                 python3 tools/lambda_cloud.py run \
                 --instance-type "$B200_TYPE" \
+                --max-price-cents 700 \
                 --ssh-private-key "$PRIVATE_KEY" \
                 --ssh-public-key "$PUBLIC_KEY" \
                 --ssh-cidr "$PUBLIC_IP/32" \

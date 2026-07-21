@@ -89,6 +89,14 @@ class ResponseQueue:
 
 
 class LambdaCloudTests(unittest.TestCase):
+    def test_unattended_price_cap(self) -> None:
+        choice = {"price_cents_per_hour": 699}
+        cloud.enforce_price_cap(choice, 700)
+        with self.assertRaises(cloud.CloudError):
+            cloud.enforce_price_cap(choice, 698)
+        with self.assertRaises(cloud.CloudError):
+            cloud.enforce_price_cap(choice, 0)
+
     def test_supported_gpu_priority_and_exact_model_tokens(self) -> None:
         types = instance_types()
         types.update(
