@@ -82,9 +82,9 @@ while (( $(date +%s) < DEADLINE )); do
     ATTEMPT=$((ATTEMPT + 1))
     printf '[%s] B200 capacity check %d\n' \
         "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$ATTEMPT"
-    export LAMBDA_API_KEY
-    LAMBDA_API_KEY="$(tr -d '\r\n' < "$KEY_FILE")"
-    INVENTORY="$(python3 tools/lambda_cloud.py inventory 2>&1)" || {
+    API_KEY_VALUE="$(tr -d '\r\n' < "$KEY_FILE")"
+    INVENTORY="$(LAMBDA_API_KEY="$API_KEY_VALUE" \
+        python3 tools/lambda_cloud.py inventory 2>&1)" || {
         printf '%s\n' "$INVENTORY" >&2
         printf 'status=inventory-error\nattempt=%d\nupdated_utc=%s\n' \
             "$ATTEMPT" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$STATE_FILE"
@@ -99,7 +99,8 @@ while (( $(date +%s) < DEADLINE )); do
             "$ATTEMPT" "$B200_TYPE" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             > "$STATE_FILE"
         printf 'Eligible B200 found: %s; starting archive run.\n' "$B200_TYPE"
-        if PYTHONUNBUFFERED=1 python3 tools/lambda_cloud.py run \
+        if LAMBDA_API_KEY="$API_KEY_VALUE" PYTHONUNBUFFERED=1 \
+                python3 tools/lambda_cloud.py run \
                 --instance-type "$B200_TYPE" \
                 --ssh-private-key "$PRIVATE_KEY" \
                 --ssh-public-key "$PUBLIC_KEY" \
@@ -116,6 +117,7 @@ while (( $(date +%s) < DEADLINE )); do
             "$ATTEMPT" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$STATE_FILE"
         exit "$STATUS"
     fi
+    unset API_KEY_VALUE
 
     printf 'status=watching\nattempt=%d\nupdated_utc=%s\n' \
         "$ATTEMPT" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$STATE_FILE"
