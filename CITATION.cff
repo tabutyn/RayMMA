@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use RayMMA in research, please cite this software."
+type: software
+title: "RayMMA: Tensor-Core ray-triangle candidate filtering"
+abstract: >-
+  A C++/CUDA research artifact for studying when dense ray-triangle
+  intersection work benefits from FP16 Tensor Core WMMA followed by FP32
+  validation.
+authors:
+  - family-names: Butyn
+    given-names: Thomas
+license: MIT
+version: 0.1.0
+keywords:
+  - CUDA
+  - Tensor Cores
+  - WMMA
+  - ray tracing
+  - BVH
+  - GPU performance
