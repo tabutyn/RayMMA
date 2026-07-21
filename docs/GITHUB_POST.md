@@ -1,57 +1,39 @@
 # LinkedIn post
 
-Can NVIDIA Tensor Cores accelerate ray–triangle intersection?
+Can Tensor Cores speed up ray tracing?
 
-I built RayMMA to find out—and the most useful result was learning exactly
-where they do not win.
+I built RayMMA to test that question. The answer turned out to be more useful
+than a simple yes or no.
 
-RayMMA maps 4 triangles × 16 rays into an `m16n16k16` WMMA operation: 64
-candidate intersections per Tensor Core tile, with FP16 inputs and FP32
-accumulation.
+Tensor Cores are excellent at dense matrix math. Ray tracing usually does the
+opposite: a spatial index called a BVH quickly removes irrelevant triangles,
+leaving small and irregular batches of work.
 
-To test it honestly, I also built:
+RayMMA compares a Tensor Core ray/triangle method with the standard CUDA
+Möller–Trumbore intersection test while keeping traversal and candidate
+ordering consistent.
 
-- an independent-ray CUDA32 Möller–Trumbore baseline;
-- a matched 16-ray CUDA packet diagnostic;
-- shared SAH/BVH8 traversal and candidate ordering;
-- Tensor-derived barycentrics, closest depth, and BVH clipping;
-- coherent, shuffled, and secondary-ray workloads; and
-- raw CUDA-event timing plus hit, primitive, and depth validation.
+On an RTX 3050 Ti Laptop GPU:
 
-The result on an RTX 3050 Ti Laptop GPU:
+- With a selective BVH, CUDA Möller–Trumbore was clearly faster. The best
+  configuration was about 7.8× faster for coherent rays and 3.3× faster for
+  shuffled rays.
+- When I deliberately made the candidate batches much larger, the approximate
+  Tensor modes reached 1.07–1.29× CUDA performance.
+- That gain was not free: a few hits and closest triangles were wrong, with up
+  to 3.28% relative depth error in the measured run.
 
-- With selective 16-triangle BVH leaves, CUDA32 won every primary and
-  secondary comparison on the new 461,824-triangle CC0 scene.
-- With deliberately dense 256-triangle leaves, the no-Möller Tensor modes
-  reached 1.07–1.29× the same-tree CUDA32 performance.
-- That speed came with measurable approximation: 2–3 missed hits out of 970,
-  3–5 wrong closest primitives, and up to 3.28% relative depth error.
-- The exact validated Tensor/CUDA hybrid crossed CUDA32 in some coarse cases,
-  but the best selective CUDA32 configuration was still about 7.8× faster for
-  coherent rays and 3.3× faster for shuffled rays.
+The broader lesson: making one computation faster does not necessarily make
+the whole program faster. Data selection, batching, memory movement, and
+accuracy can matter more than raw arithmetic throughput.
 
-So the conclusion is not “Tensor Cores beat ray tracing.” It is narrower and,
-I think, more useful:
+The open systems question is whether useful ray/triangle candidates can be
+packed into dense Tensor Core batches without losing the BVH efficiency that
+made those batches sparse in the first place.
 
-Dense ray/triangle arithmetic can benefit from Tensor Cores, but candidate
-generation and BVH selectivity dominate the complete system. A faster leaf
-kernel is not automatically a faster tracer.
+The repository includes the CUDA implementation, tests, raw benchmark data,
+reproduction instructions, and negative results.
 
-The project also forced me into the details I enjoy most: warp-level data
-layout, mixed-precision numerical behavior, coordinate normalization,
-closest-hit depth propagation, traversal correctness, benchmark design, and
-GPU driver/device debugging.
+https://github.com/tabutyn/RayMMA
 
-All 15 tests pass. The repository includes the CUDA source, both approximate
-variants, exact source and asset hashes, raw samples, complete transcripts,
-REUSE 3.3 licensing, and the negative results—not just the favorable numbers.
-
-This is the kind of GPU systems engineering work I want to keep doing.
-
-Repository: https://github.com/tabutyn/RayMMA
-
-I would be glad to compare results with anyone working on CUDA, ray tracing,
-Tensor Core scheduling, or compacted ray work queues—especially on newer GPU
-architectures.
-
-#CUDA #GPUComputing #RayTracing #TensorCores #SystemsEngineering #NVIDIA
+#CUDA #GPUComputing #RayTracing #PerformanceEngineering
