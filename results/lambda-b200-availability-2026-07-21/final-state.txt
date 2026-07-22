@@ -1,0 +1,8 @@
+status=expired
+attempt=139
+started_utc=2026-07-21T21:28:51Z
+finished_utc=2026-07-22T09:28:51Z
+eligible_b200_capacity=none
+instances_launched=0
+running_instances_after_watch=none
+b200_compute_charge_usd=0.00

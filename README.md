@@ -87,6 +87,17 @@ The repository retains complete paid Lambda
 [A100](results/lambda-a100-2026-07-21/README.md), and
 [H100](results/lambda-h100-2026-07-21/README.md) evidence runs.
 
+![Cloud GPU Tensor crossover comparison](docs/assets/cloud-gpu-crossover.png)
+
+In the matched coherent-primary Grid comparison, the approximate no-Möller
+median stayed at or below parity through leaf 32, crossed over on all three
+GPUs at leaf 64, and peaked at leaf 128. The actual Lambda bill for the three
+successful runs was $0.32 total. A separate 12-hour overnight watch made 139
+B200 availability checks, but no single B200 appeared and no B200 instance was
+launched. See
+[Findings and evidence](docs/RESULTS.md) for the raw-data links, accuracy
+counters, exact validated result, billing details, and plotting method.
+
 For a high-density real mesh with unambiguous redistribution rights, fetch
 Poly Haven's CC0 Coastal Cliff 01 and let Blender derive three benchmark tiers:
 
@@ -173,11 +184,12 @@ The complete derivation and numerical policy are in
 
 ## Evidence policy
 
-The published RTX 3050 Ti and paid Lambda A10/A100/H100 bundles cover the current
-CUDA32, validated WMMA, `uvt-depthsorted`, and `e0e1e2` backends. They include
-raw samples, complete transcripts, environment capture, source hashes, and
-all correctness counters. The [results policy](results/README.md) defines what
-to retain when adding another GPU or workload.
+The published RTX 3050 Ti and paid Lambda A10/A100/H100 bundles cover the
+current CUDA32, validated WMMA, `uvt-depthsorted`, and `e0e1e2` backends. They
+include raw samples, complete transcripts, environment capture, source hashes,
+and all correctness counters. The B200 record is availability evidence only,
+not a benchmark. The [results policy](results/README.md) defines what to retain
+when adding another GPU or workload.
 
 ## Scope and limitations
 

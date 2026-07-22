@@ -1,41 +1,60 @@
 # LinkedIn post
 
-Can Tensor Cores speed up ray tracing?
+Suggested image: [`cloud-gpu-crossover.png`](assets/cloud-gpu-crossover.png)
 
-I built RayMMA to test that question. The answer turned out to be more useful
-than a simple yes or no.
+## Post
 
-Tensor Cores are excellent at dense matrix math. Ray tracing usually does the
-opposite: a spatial index called a BVH quickly removes irrelevant triangles,
-leaving small and irregular batches of work.
+When do Tensor Cores actually help ray tracing?
 
-RayMMA compares a Tensor Core ray/triangle method with the standard CUDA
-Möller–Trumbore intersection test while keeping traversal and candidate
-ordering consistent.
+I built RayMMA and ran the same CUDA benchmark on NVIDIA A10, A100, and H100
+GPUs through Lambda Cloud.
 
-I tested it locally on an RTX 3050 Ti Laptop GPU, then paid for full archive
-runs on Lambda Cloud NVIDIA A10, A100, and H100 GPUs. Each rental built from a
-public commit, passed all 16 tests, retained every timing sample and correctness
-counter, and were downloaded and checksum-verified before termination.
+A ray tracer uses a spatial index called a BVH to discard most triangles. A
+“leaf” is the small batch left to test. The chart compares an FP16 Tensor Core
+path with ordinary CUDA triangle intersection on the same BVH. Above 1.0x,
+the Tensor path is faster.
 
-Across those experiments:
+Through a maximum of 32 triangles per leaf, the Tensor median stayed at or
+below parity; A100 at 32 was nearly tied. At a maximum of 64, the Tensor path
+crossed over on all three. At 128 it reached:
 
-- With a selective BVH, CUDA Möller–Trumbore was clearly faster. The best
-  configuration was about 9.3× faster for coherent rays and 3.3× faster for
-  shuffled rays.
-- When I deliberately made the candidate batches much larger, the approximate
-  Tensor modes reached up to 1.64× on A10, 1.72× on A100, and 1.59× on H100.
-- That gain was not free: a few hits and closest triangles were wrong, with up
-  to 3.28% relative depth error in the measured run.
+- A10: 1.64x
+- A100: 1.72x
+- H100: 1.59x
 
-The broader lesson: making one computation faster does not necessarily make
-the whole program faster. Data selection, batching, memory movement, and
-accuracy can matter more than raw arithmetic throughput.
+The important caveat: the plotted fast path is approximate. It lets the Tensor
+result decide the hit and depth. Across both approximate modes and all cloud
+ray sets, the worst cases reached 0.471% missed reference hits and 0.785% wrong
+closest triangles. One secondary-ray case also reached 242% maximum relative
+depth error. The exact validated hybrid kept only a small gain on A10/A100 and
+none on H100. A selective BVH with ordinary CUDA remained the fastest
+complete configuration.
 
-The repository includes the CUDA implementation, tests, raw benchmark data,
-the complete paid A10, A100, and H100 evidence bundles, reproduction instructions, and
-negative results.
+All three rentals built from public commits, passed all 16 tests, saved the
+raw timing and correctness data, and were automatically terminated. The actual
+Lambda bill was $0.32 total: $0.08 for A10, $0.05 for A100, and $0.19 for
+H100. Lambda's API made the launch, build, result download, verification, and
+termination practical to automate from one script.
 
+I also watched for a single B200 139 times over 12 hours overnight. None
+became available, so there is no B200 result yet—and no B200 charge.
+
+The useful lesson was not “Tensor Cores make ray tracing faster.” It was that
+dense batches can make matrix hardware worthwhile, while good filtering and
+accuracy often matter more than raw arithmetic throughput.
+
+Code, graph, scripts, and raw evidence:
 https://github.com/tabutyn/RayMMA
 
 #CUDA #GPUComputing #RayTracing #PerformanceEngineering
+
+## Image alt text
+
+Two-panel RayMMA chart. The left panel plots approximate Tensor-path speedup
+over CUDA32 against maximum BVH leaf size for A10, A100, and H100 GPUs. All
+three are below parity through leaf 32, cross above parity at leaf 64, and
+peak at leaf 128 between 1.59x and 1.72x. The right panel compares absolute
+CUDA32 and Tensor latency at leaf 128; H100 is fastest for this workload. A
+footer states that the plotted path is approximate, the exact hybrid has much
+smaller gains, the total Lambda bill was $0.32, and no B200 capacity appeared
+during 139 checks over 12 hours.

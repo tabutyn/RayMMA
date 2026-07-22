@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+<title>RayMMA cloud GPU crossover comparison</title>
+<desc>Line chart of approximate Tensor speedup over same-tree CUDA32 by BVH leaf size on A10, A100, and H100, plus absolute latency at leaf 128.</desc>
+<rect width="1600" height="900" fill="#f8fafc"/>
+<style>text { font-family: "DejaVu Sans", Arial, sans-serif; }</style>
+<text x="70.0" y="66.0" font-size="42" fill="#172033" font-weight="700" text-anchor="start" >When dense BVH leaves favor Tensor Cores</text>
+<text x="70.0" y="108.0" font-size="21" fill="#526079" font-weight="400" text-anchor="start" >Same 32,768-triangle Grid workload on Lambda Cloud · coherent primary rays · 9-sample medians</text>
+<rect x="70" y="150" width="930" height="610" rx="18" fill="#ffffff" stroke="#dce3ec"/>
+<text x="100.0" y="197.0" font-size="25" fill="#172033" font-weight="700" text-anchor="start" >Tensor speedup over same-tree CUDA32</text>
+<text x="100.0" y="227.0" font-size="17" fill="#657087" font-weight="400" text-anchor="start" >CUDA32 median ÷ Tensor median · above 1.0× means Tensor is faster</text>
+<rect x="618.0" y="235" width="340.0" height="438" fill="#ecfdf5" stroke="none"/>
+<line x1="142" y1="627.7" x2="958" y2="627.7" stroke="#dfe5ec" stroke-width="1"/>
+<text x="127.0" y="634.7" font-size="16" fill="#667085" font-weight="400" text-anchor="end" >0.5×</text>
+<line x1="142" y1="552.2" x2="958" y2="552.2" stroke="#dfe5ec" stroke-width="1"/>
+<text x="127.0" y="559.2" font-size="16" fill="#667085" font-weight="400" text-anchor="end" >0.75×</text>
+<line x1="142" y1="476.7" x2="958" y2="476.7" stroke="#475569" stroke-width="2.5"/>
+<text x="127.0" y="483.7" font-size="16" fill="#667085" font-weight="400" text-anchor="end" >1×</text>
+<line x1="142" y1="401.1" x2="958" y2="401.1" stroke="#dfe5ec" stroke-width="1"/>
+<text x="127.0" y="408.1" font-size="16" fill="#667085" font-weight="400" text-anchor="end" >1.2×</text>
+<line x1="142" y1="325.6" x2="958" y2="325.6" stroke="#dfe5ec" stroke-width="1"/>
+<text x="127.0" y="332.6" font-size="16" fill="#667085" font-weight="400" text-anchor="end" >1.5×</text>
+<line x1="142" y1="250.1" x2="958" y2="250.1" stroke="#dfe5ec" stroke-width="1"/>
+<text x="127.0" y="257.1" font-size="16" fill="#667085" font-weight="400" text-anchor="end" >1.8×</text>
+<text x="948.0" y="463.7" font-size="16" fill="#13795b" font-weight="700" text-anchor="end" >Tensor faster</text>
+<text x="152.0" y="501.7" font-size="16" fill="#596579" font-weight="700" text-anchor="start" >CUDA32 faster</text>
+<line x1="142.0" y1="235" x2="142.0" y2="673" stroke="#eef1f5"/>
+<text x="142.0" y="704.0" font-size="17" fill="#526079" font-weight="400" text-anchor="middle" >4</text>
+<line x1="278.0" y1="235" x2="278.0" y2="673" stroke="#eef1f5"/>
+<text x="278.0" y="704.0" font-size="17" fill="#526079" font-weight="400" text-anchor="middle" >8</text>
+<line x1="414.0" y1="235" x2="414.0" y2="673" stroke="#eef1f5"/>
+<text x="414.0" y="704.0" font-size="17" fill="#526079" font-weight="400" text-anchor="middle" >16</text>
+<line x1="550.0" y1="235" x2="550.0" y2="673" stroke="#eef1f5"/>
+<text x="550.0" y="704.0" font-size="17" fill="#526079" font-weight="400" text-anchor="middle" >32</text>
+<line x1="686.0" y1="235" x2="686.0" y2="673" stroke="#eef1f5"/>
+<text x="686.0" y="704.0" font-size="17" fill="#526079" font-weight="400" text-anchor="middle" >64</text>
+<line x1="822.0" y1="235" x2="822.0" y2="673" stroke="#eef1f5"/>
+<text x="822.0" y="704.0" font-size="17" fill="#526079" font-weight="400" text-anchor="middle" >128</text>
+<line x1="958.0" y1="235" x2="958.0" y2="673" stroke="#eef1f5"/>
+<text x="958.0" y="704.0" font-size="17" fill="#526079" font-weight="400" text-anchor="middle" >256</text>
+<text x="550.0" y="737.0" font-size="18" fill="#526079" font-weight="400" text-anchor="middle" >Maximum triangles per BVH leaf</text>
+<polyline points="142.0,620.2 278.0,551.2 414.0,489.9 550.0,486.6 686.0,352.9 822.0,284.1 958.0,333.0" fill="none" stroke="#2563eb" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="142.0" cy="620.2" r="6" fill="#ffffff" stroke="#2563eb" stroke-width="4"/>
+<circle cx="278.0" cy="551.2" r="6" fill="#ffffff" stroke="#2563eb" stroke-width="4"/>
+<circle cx="414.0" cy="489.9" r="6" fill="#ffffff" stroke="#2563eb" stroke-width="4"/>
+<circle cx="550.0" cy="486.6" r="6" fill="#ffffff" stroke="#2563eb" stroke-width="4"/>
+<circle cx="686.0" cy="352.9" r="6" fill="#ffffff" stroke="#2563eb" stroke-width="4"/>
+<circle cx="822.0" cy="284.1" r="6" fill="#ffffff" stroke="#2563eb" stroke-width="4"/>
+<circle cx="958.0" cy="333.0" r="6" fill="#ffffff" stroke="#2563eb" stroke-width="4"/>
+<text x="822.0" y="270.1" font-size="16" fill="#2563eb" font-weight="700" text-anchor="middle" >1.64×</text>
+<polyline points="142.0,628.7 278.0,556.5 414.0,487.7 550.0,477.4 686.0,318.6 822.0,260.4 958.0,335.8" fill="none" stroke="#0f8f83" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="142.0" cy="628.7" r="6" fill="#ffffff" stroke="#0f8f83" stroke-width="4"/>
+<circle cx="278.0" cy="556.5" r="6" fill="#ffffff" stroke="#0f8f83" stroke-width="4"/>
+<circle cx="414.0" cy="487.7" r="6" fill="#ffffff" stroke="#0f8f83" stroke-width="4"/>
+<circle cx="550.0" cy="477.4" r="6" fill="#ffffff" stroke="#0f8f83" stroke-width="4"/>
+<circle cx="686.0" cy="318.6" r="6" fill="#ffffff" stroke="#0f8f83" stroke-width="4"/>
+<circle cx="822.0" cy="260.4" r="6" fill="#ffffff" stroke="#0f8f83" stroke-width="4"/>
+<circle cx="958.0" cy="335.8" r="6" fill="#ffffff" stroke="#0f8f83" stroke-width="4"/>
+<text x="822.0" y="246.4" font-size="16" fill="#0f8f83" font-weight="700" text-anchor="middle" >1.72×</text>
+<polyline points="142.0,647.5 278.0,592.9 414.0,511.9 550.0,491.1 686.0,357.6 822.0,299.8 958.0,370.3" fill="none" stroke="#ea580c" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="142.0" cy="647.5" r="6" fill="#ffffff" stroke="#ea580c" stroke-width="4"/>
+<circle cx="278.0" cy="592.9" r="6" fill="#ffffff" stroke="#ea580c" stroke-width="4"/>
+<circle cx="414.0" cy="511.9" r="6" fill="#ffffff" stroke="#ea580c" stroke-width="4"/>
+<circle cx="550.0" cy="491.1" r="6" fill="#ffffff" stroke="#ea580c" stroke-width="4"/>
+<circle cx="686.0" cy="357.6" r="6" fill="#ffffff" stroke="#ea580c" stroke-width="4"/>
+<circle cx="822.0" cy="299.8" r="6" fill="#ffffff" stroke="#ea580c" stroke-width="4"/>
+<circle cx="958.0" cy="370.3" r="6" fill="#ffffff" stroke="#ea580c" stroke-width="4"/>
+<text x="822.0" y="285.8" font-size="16" fill="#ea580c" font-weight="700" text-anchor="middle" >1.59×</text>
+<line x1="160" y1="259" x2="195" y2="259" stroke="#2563eb" stroke-width="5"/>
+<text x="208.0" y="265.0" font-size="18" fill="#172033" font-weight="700" text-anchor="start" >A10</text>
+<line x1="305" y1="259" x2="340" y2="259" stroke="#0f8f83" stroke-width="5"/>
+<text x="353.0" y="265.0" font-size="18" fill="#172033" font-weight="700" text-anchor="start" >A100</text>
+<line x1="450" y1="259" x2="485" y2="259" stroke="#ea580c" stroke-width="5"/>
+<text x="498.0" y="265.0" font-size="18" fill="#172033" font-weight="700" text-anchor="start" >H100</text>
+<rect x="1030" y="150" width="500" height="610" rx="18" fill="#ffffff" stroke="#dce3ec"/>
+<text x="1060.0" y="197.0" font-size="25" fill="#172033" font-weight="700" text-anchor="start" >Absolute latency at leaf 128</text>
+<text x="1060.0" y="227.0" font-size="16" fill="#657087" font-weight="400" text-anchor="start" >this workload · milliseconds · lower is better</text>
+<line x1="1142.0" y1="265" x2="1142.0" y2="597" stroke="#e8ecf1"/>
+<text x="1142.0" y="624.0" font-size="15" fill="#687386" font-weight="400" text-anchor="middle" >0.00</text>
+<line x1="1227.5" y1="265" x2="1227.5" y2="597" stroke="#e8ecf1"/>
+<text x="1227.5" y="624.0" font-size="15" fill="#687386" font-weight="400" text-anchor="middle" >0.25</text>
+<line x1="1313.1" y1="265" x2="1313.1" y2="597" stroke="#e8ecf1"/>
+<text x="1313.1" y="624.0" font-size="15" fill="#687386" font-weight="400" text-anchor="middle" >0.50</text>
+<line x1="1398.6" y1="265" x2="1398.6" y2="597" stroke="#e8ecf1"/>
+<text x="1398.6" y="624.0" font-size="15" fill="#687386" font-weight="400" text-anchor="middle" >0.75</text>
+<text x="1060.0" y="318.0" font-size="19" fill="#172033" font-weight="700" text-anchor="start" >A10</text>
+<rect x="1142" y="287" width="277.1" height="27" rx="5" fill="#e4e9f0" stroke="#aab4c3"/>
+<text x="1428.1" y="307.0" font-size="15" fill="#354052" font-weight="700" text-anchor="start" >0.810</text>
+<rect x="1142" y="326" width="169.2" height="27" rx="5" fill="#2563eb" stroke="#2563eb"/>
+<text x="1320.2" y="346.0" font-size="15" fill="#354052" font-weight="700" text-anchor="start" >0.495</text>
+<text x="1060.0" y="421.0" font-size="19" fill="#172033" font-weight="700" text-anchor="start" >A100</text>
+<rect x="1142" y="390" width="300.6" height="27" rx="5" fill="#e4e9f0" stroke="#aab4c3"/>
+<text x="1451.6" y="410.0" font-size="15" fill="#354052" font-weight="700" text-anchor="start" >0.879</text>
+<rect x="1142" y="429" width="175.2" height="27" rx="5" fill="#0f8f83" stroke="#0f8f83"/>
+<text x="1326.2" y="449.0" font-size="15" fill="#354052" font-weight="700" text-anchor="start" >0.512</text>
+<text x="1060.0" y="524.0" font-size="19" fill="#172033" font-weight="700" text-anchor="start" >H100</text>
+<rect x="1142" y="493" width="212.8" height="27" rx="5" fill="#e4e9f0" stroke="#aab4c3"/>
+<text x="1363.8" y="513.0" font-size="15" fill="#354052" font-weight="700" text-anchor="start" >0.622</text>
+<rect x="1142" y="532" width="134.2" height="27" rx="5" fill="#ea580c" stroke="#ea580c"/>
+<text x="1285.2" y="552.0" font-size="15" fill="#354052" font-weight="700" text-anchor="start" >0.392</text>
+<rect x="1060" y="661" width="25" height="18" rx="3" fill="#e4e9f0" stroke="#aab4c3"/>
+<text x="1095.0" y="677.0" font-size="16" fill="#4a5568" font-weight="400" text-anchor="start" >CUDA32</text>
+<rect x="1220" y="661" width="9" height="18" fill="#2563eb"/>
+<rect x="1228" y="661" width="9" height="18" fill="#0f8f83"/>
+<rect x="1236" y="661" width="9" height="18" fill="#ea580c"/>
+<text x="1255.0" y="677.0" font-size="16" fill="#4a5568" font-weight="400" text-anchor="start" >Tensor-owned</text>
+<rect x="1060" y="692" width="440" height="50" rx="8" fill="#fff7ed" stroke="#fed7aa"/>
+<text x="1280.0" y="712.0" font-size="13" fill="#7c2d12" font-weight="700" text-anchor="middle" >Exact hybrid @ leaf 128: A10 1.07× · A100 1.02× · H100 0.97×</text>
+<text x="1280.0" y="733.0" font-size="14" fill="#9a3412" font-weight="700" text-anchor="middle" >Lambda bill: $0.32 total · A10 8¢ · A100 5¢ · H100 19¢</text>
+<text x="70.0" y="802.0" font-size="17" fill="#3e4a5e" font-weight="700" text-anchor="start" >Approximate path shown: FP16-input uvt-depthsorted; Tensor output owns hit and depth; no Möller validation.</text>
+<text x="70.0" y="829.0" font-size="16" fill="#596579" font-weight="400" text-anchor="start" >Plotted-primary maxima: 0.245% missed hits · 0.276% wrong closest triangles · 7.73% relative depth error.</text>
+<text x="70.0" y="856.0" font-size="16" fill="#596579" font-weight="400" text-anchor="start" >At selective leaves, CUDA wins. Dense-leaf speedups are same-tree comparisons—not wins over the best BVH or RT Cores.</text>
+<text x="70.0" y="884.0" font-size="15" fill="#2563eb" font-weight="400" text-anchor="start" >Source, raw samples, correctness counters, and plotting script: github.com/tabutyn/RayMMA</text>
+<text x="1530.0" y="884.0" font-size="15" fill="#596579" font-weight="700" text-anchor="end" >B200: 139 checks / 12 h / no capacity</text>
+</svg>

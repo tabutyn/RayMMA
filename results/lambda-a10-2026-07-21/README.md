@@ -9,8 +9,12 @@ instance `terminated`, and a separate inventory query reported no running
 instances.
 
 The live launch price was $1.29/hour. The helper measured 9.3 minutes from
-launch through confirmed termination and estimated $0.21 of compute before
-tax. Lambda's invoice remains the authoritative billing record.
+its launch request through confirmed termination and conservatively estimated
+$0.21 by applying that price to the whole wall-clock lifecycle. Lambda's
+billing history later reported 20:28–20:32 UTC, displayed 0.07 hours, and an
+actual charge of **$0.08**. The provider's charge is the experiment cost;
+the longer helper interval also includes provisioning, readiness, retrieval,
+and termination polling.
 
 ## Environment and test
 
@@ -63,12 +67,18 @@ The validated path matched the reference in every archived comparison. The
 Tensor-owned variants intentionally make the FP16-input Tensor result own hit
 inclusion and depth, so their disagreement is part of the evidence:
 
-| Variant and ray set | Max false positives/rays | Max false negatives/reference hits | Max wrong primitive/reference hits |
-|---|---:|---:|---:|
-| `uvt-depthsorted`, primary | 0.0027% | 0.2452% | 0.2758% |
-| `e0e1e2`, primary | 0.0027% | 0.1839% | 0.3065% |
-| `uvt-depthsorted`, secondary | 0.0000% | 0.4710% | 0.4710% |
-| `e0e1e2`, secondary | 0.0000% | 0.1570% | 0.7849% |
+| Variant and ray set | Max false positives/rays | Max false negatives/reference hits | Max wrong primitive/reference hits | Max relative depth error |
+|---|---:|---:|---:|---:|
+| `uvt-depthsorted`, primary | 0.0027% | 0.2452% | 0.2758% | 7.73% |
+| `e0e1e2`, primary | 0.0027% | 0.1839% | 0.3065% | 21.1% |
+| `uvt-depthsorted`, secondary | 0.0000% | 0.4710% | 0.4710% | 242% |
+| `e0e1e2`, secondary | 0.0000% | 0.1570% | 0.7849% | 3.44% |
+
+The 242% entry occurred in a secondary case that also reported wrong
+primitives; the aggregate counter does not establish that the same ray caused
+both. That case's maximum absolute depth difference was 0.113 scene units; the
+archive-wide maximum absolute difference was 0.547 in a primary `e0e1e2`
+case. These are worst cases, not typical depth errors.
 
 ## Evidence map
 

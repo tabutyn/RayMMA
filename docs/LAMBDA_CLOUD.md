@@ -118,6 +118,11 @@ verified retrieval and confirmed termination. Progress is written to
 launching it detached. The watcher cannot survive the local computer powering
 off or losing network access.
 
+The retained July 21–22 attempt completed a 12-hour overnight wall-clock
+window and 139 successful API checks. No eligible single B200 appeared, so it
+launched nothing and incurred no B200 compute charge. See the
+[availability record](../results/lambda-b200-availability-2026-07-21/README.md).
+
 Selection is based on the live `/instance-types` response. The helper accepts
 only the B200 family with a reported GPU count of exactly one; price and type
 name break ties. Use `--instance-type` and `--region` to pin a choice shown by
@@ -183,14 +188,22 @@ implicitly.
 Lambda documents that firewall rules do not apply in `us-south-1`, so the
 helper excludes that region from automatic and explicit GPU selection.
 
-## Retained paid run
+## Retained paid runs
 
-The [July 21, 2026 Lambda A10 evidence bundle](../results/lambda-a10-2026-07-21/README.md)
-records a complete paid run of this workflow. Lambda launched one A10 at
-$1.29/hour, all 16 tests and the archive suite passed, the archive was
-downloaded and verified, and termination was confirmed. The measured
-lifecycle was 9.3 minutes with a helper estimate of $0.21 before tax. A
-separate post-run inventory query showed no running instances.
+The July 21, 2026 [A10](../results/lambda-a10-2026-07-21/README.md),
+[A100](../results/lambda-a100-2026-07-21/README.md), and
+[H100](../results/lambda-h100-2026-07-21/README.md) bundles record complete
+paid runs of this workflow. Every rental passed all 16 tests and the archive
+suite, downloaded and verified its result, confirmed termination, and was
+followed by an inventory query showing no running instances.
+
+The provider's billing history reports actual charges of $0.08 for A10,
+$0.05 for A100, and $0.19 for H100: **$0.32 total**. The helper printed larger
+conservative estimates because it applied each hourly rate to the entire
+launch-request-through-termination-confirmation wall-clock interval, including
+provisioning, readiness, retrieval, and shutdown polling. Provider billing is
+authoritative. See [Findings and evidence](RESULTS.md) for the performance
+comparison and reproducible graph.
 
 ## Failure and billing safety
 

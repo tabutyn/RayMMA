@@ -38,3 +38,7 @@
 - Added REUSE 3.3 metadata, the canonical MIT license text, and a compliance
   workflow.
 - Clarified the MIT licensing boundary and public repository positioning.
+- Published complete Lambda A10, A100, and H100 evidence bundles, actual
+  provider billing, and a reproducible cross-GPU crossover chart.
+- Recorded a 12-hour, 139-check B200 availability watch that found no capacity
+  and launched no billable instance.

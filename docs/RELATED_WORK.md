@@ -37,9 +37,10 @@ optional established hierarchy builder; its output is converted to RayMMA's
 uncompressed BVH8 traversal format.
 
 The repository still lacks a raw all-pairs `N rays × M triangles` sweep. Its
-RTX 3050 Ti and paid Lambda A10 measurements provide two Ampere data points,
-not the cross-generation coverage needed for a broader architectural
-conclusion.
+RTX 3050 Ti plus paid Lambda A10, A100, and H100 measurements now span Ampere
+and Hopper, but one small procedural workload is not enough for a broad
+architectural conclusion. A 12-hour Lambda B200 availability watch found no
+capacity, so Blackwell remains unmeasured.
 
 Before a paper or patent claim:
 
@@ -48,6 +49,7 @@ Before a paper or patent claim:
 2. compare equations and data layouts claim-by-claim, not only titles;
 3. retain the new CUDA32, TinyBVH, and true-secondary controls across
    standard scenes and larger sample counts;
-4. test additional GPU generations, including H100 or B200; and
+4. test additional GPU generations and workloads, including B200 when it is
+   available; and
 5. obtain qualified IP advice if patent protection matters before public
    disclosure.

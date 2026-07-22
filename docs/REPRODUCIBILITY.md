@@ -33,10 +33,10 @@ downloaded scene assets.
 
 ## Cloud GPU evidence archive
 
-On a clean checkout running on a single B200, the archive
-helper uses the `core` preset's native CUDA architecture, captures environment
-and source hashes, runs all three Tensor variants over the procedural Grid
-leaf sweep, and packages logs, raw CSVs, checksums, and built executables:
+On a clean checkout running on one supported GPU, the archive helper uses the
+`core` preset's native CUDA architecture, captures environment and source
+hashes, runs all three Tensor variants over the procedural Grid leaf sweep,
+and packages logs, raw CSVs, checksums, and built executables:
 
 ```sh
 ./tools/run_cloud_gpu.sh --profile quick
@@ -52,8 +52,24 @@ rejects dirty checkouts, multi-GPU hosts, and GPUs outside the supported set.
 The environment capture records the exact model and native architecture, so
 the artifact is not presented as evidence from another GPU.
 
-The retained [Lambda A10 run](../results/lambda-a10-2026-07-21/README.md) is
-a complete example of this archive contract.
+The retained Lambda [A10](../results/lambda-a10-2026-07-21/README.md),
+[A100](../results/lambda-a100-2026-07-21/README.md), and
+[H100](../results/lambda-h100-2026-07-21/README.md) runs are complete examples
+of this archive contract. A 12-hour B200 watch found no capacity, so the
+[B200 record](../results/lambda-b200-availability-2026-07-21/README.md) is
+availability evidence rather than a benchmark.
+
+Regenerate the published cross-GPU comparison from the original nine-sample
+CSVs with:
+
+```sh
+python3 tools/plot_cloud_comparison.py \
+  --png docs/assets/cloud-gpu-crossover.png
+```
+
+The script validates that every plotted GPU/leaf/backend group contains nine
+samples, then writes the derived comparison CSV and SVG before optionally
+rasterizing the PNG with ImageMagick.
 
 For API-driven rental, SSH, execution, retrieval, and termination, see
 [Running on Lambda Cloud](LAMBDA_CLOUD.md).
