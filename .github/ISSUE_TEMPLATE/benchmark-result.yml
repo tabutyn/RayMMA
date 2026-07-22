@@ -1,0 +1,86 @@
+name: Benchmark result
+description: Record an independently reproduced RayMMA result.
+title: "[result] "
+labels:
+  - benchmark
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This template records external evidence; it does not imply an active
+        benchmark roadmap or maintainer commitment. Report correctness before
+        performance and do not attach models you cannot redistribute.
+  - type: input
+    id: commit
+    attributes:
+      label: RayMMA commit
+      description: Full Git commit hash; state whether the tree was dirty.
+      placeholder: 40-character commit hash, clean
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Paste the relevant output from tools/capture_environment.sh.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Exact command
+      render: shell
+    validations:
+      required: true
+  - type: dropdown
+    id: tensor_variant
+    attributes:
+      label: Tensor variant
+      description: Select the Tensor path whose timing and accuracy are reported.
+      options:
+        - validated
+        - uvt-depthsorted
+        - e0e1e2
+    validations:
+      required: true
+  - type: checkboxes
+    id: baselines
+    attributes:
+      label: Baselines included
+      description: CUDA32 is required for a primary claim; CUDA-packet16 is diagnostic.
+      options:
+        - label: CUDA32 independent-ray baseline
+          required: true
+        - label: CUDA-packet16 matched-packet diagnostic
+          required: false
+  - type: textarea
+    id: input
+    attributes:
+      label: Input and configuration
+      description: Scene source/license/hash, ray construction, resolution, BVH builder, converted-tree statistics, maximum leaf size, and packet order.
+    validations:
+      required: true
+  - type: textarea
+    id: correctness
+    attributes:
+      label: Correctness output
+      description: Include false positives, false negatives, wrong primitives, invalid outputs, depth error, brute-force comparison, and overflow counters.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: performance
+    attributes:
+      label: Performance output and raw samples
+      description: Paste output and link or attach machine-readable raw samples when available.
+      render: text
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      options:
+        - label: I have not attached proprietary or uncleared scene assets.
+          required: true

@@ -1,0 +1,18 @@
+name: CPU algebra
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  algebra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify separated algebra
+        run: python3 prototype/verify_algebra.py
+      - name: Verify Lambda Cloud automation offline
+        run: python3 tools/test_lambda_cloud.py

@@ -1,0 +1,15 @@
+/build/
+/build-*/
+/lambda-results/
+/checker-assets/
+/scenes/
+/.idea/
+/.vscode/
+CMakeUserPresets.json
+__pycache__/
+*.pyc
+*.optixir
+*.ppm
+*.csv
+!results/**/*.csv
+.DS_Store
