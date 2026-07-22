@@ -33,11 +33,11 @@ complete configuration.
 All three rentals built from public commits, passed all 16 tests, saved the
 raw timing and correctness data, and were automatically terminated. The actual
 Lambda bill was $0.32 total: $0.08 for A10, $0.05 for A100, and $0.19 for
-H100. Lambda's API made the launch, build, result download, verification, and
-termination practical to automate from one script.
+H100. The helper combined Lambda's API for lifecycle operations with SSH for
+the build and verified result download.
 
 I also watched for a single B200 139 times over 12 hours overnight. None
-became available, so there is no B200 result yet—and no B200 charge.
+became available; B200 was not benchmarked, and no B200 charge was incurred.
 
 The useful lesson was not “Tensor Cores make ray tracing faster.” It was that
 dense batches can make matrix hardware worthwhile, while good filtering and

@@ -85,7 +85,7 @@ class LambdaAPI:
             "Authorization": f"Bearer {self.api_key}",
             # Lambda's Cloudflare edge rejects urllib's default
             # ``Python-urllib/*`` signature before the API sees the request.
-            "User-Agent": "RayMMA-Lambda-Runner/1.0 (+https://github.com/tfharris/RayMMA)",
+            "User-Agent": "RayMMA-Lambda-Runner/1.0 (+https://github.com/tabutyn/RayMMA)",
         }
         if data is not None:
             headers["Content-Type"] = "application/json"

@@ -166,8 +166,8 @@ Only surviving candidates need divisions. The recovered coordinates are
 - WMMA inputs in this prototype are FP16 and accumulators are FP32.
 - Compute cross products in FP32 before conversion to FP16.
 - Large world-space positions make `cross(O,r)`, `cross(B,A)`, and `dot(A,n)`
-  vulnerable to FP16 overflow and cancellation. A production implementation
-  should use BVH-leaf-local coordinates or another local coordinate frame.
+  vulnerable to FP16 overflow and cancellation. The integrated implementation
+  uses BVH-leaf-local coordinates; this algebra prototype does not.
 - If a local transform is `P' = s(P-center)` while `r` remains unscaled, the
   Tensor ratio returns `t' = s*t`; recover world depth with `t=t'/s`. Edge
   values scale as `s^2`, while `Nt` scales as `s^3`.

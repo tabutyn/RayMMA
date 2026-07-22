@@ -10,7 +10,8 @@ usage() {
     cat <<'EOF'
 usage: ./tools/run_cloud_gpu.sh [--profile quick|archive]
 
-Build RayMMA for SM 80, run the procedural Grid evidence suite, and write:
+Build RayMMA for the host GPU's native CUDA architecture, run the procedural
+Grid evidence suite, and write:
   build/raymma-cloud-results.tar.gz
   build/raymma-cloud-results.tar.gz.sha256
 

@@ -144,15 +144,15 @@ completed a 12-hour wall-clock window with 139 successful Lambda API checks.
 No eligible single-GPU B200 capacity appeared. No instance was launched, no
 B200 compute charge was incurred, and there is no B200 benchmark result.
 
-This documents inability to obtain the requested GPU, not a performance
-finding. The [B200 availability record](../results/lambda-b200-availability-2026-07-21/README.md)
+This is availability evidence, not a performance finding. The
+[B200 availability record](../results/lambda-b200-availability-2026-07-21/README.md)
 retains the exact window, final state, restrictions, and polling caveat.
 
 ## RTX 3050 Ti Coastal Cliff reproduced result
 
-The current standalone source was rebuilt with CUDA 13.1 and the hash-pinned,
-CC0 Poly Haven Coastal Cliff 01 model. The model produced 8,516, 71,312, and
-461,824-triangle tiers. All 15 tests passed.
+The source at the recorded commit was built with CUDA 13.1 and the
+hash-pinned, CC0 Poly Haven Coastal Cliff 01 model. The model produced 8,516,
+71,312, and 461,824-triangle tiers. All 15 tests passed.
 
 The benchmark used 256x144 rays, six internal warmups, nine retained
 CUDA-event samples, and a separate candidate-rich Grid run immediately before
@@ -209,11 +209,9 @@ source manifest.
 ## Scope
 
 This is a software BVH comparison on an RTX 3050 Ti Laptop GPU plus paid
-NVIDIA A10, A100, and H100 rentals. A 12-hour B200 availability watch found no
-capacity, so B200 remains unmeasured. The strongest
-implemented baseline is independent-ray CUDA32; the repository does not
-compare against RT Cores, OptiX, Vulkan RT, or DXR. Results on other GPU
-generations remain useful future measurements.
+NVIDIA A10, A100, and H100 rentals. The strongest implemented baseline is
+independent-ray CUDA32; the repository does not compare against RT Cores,
+OptiX, Vulkan RT, or DXR.
 
 See [Reproducibility](REPRODUCIBILITY.md) for the timing and correctness
 contract.

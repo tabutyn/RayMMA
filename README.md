@@ -13,7 +13,7 @@ CUDA Möller–Trumbore intersection inside the same software BVH traversal.
 
 ## Short answer
 
-The strongest baseline currently implemented is independent-ray `CUDA32`:
+The strongest implemented baseline is independent-ray `CUDA32`:
 one ray per lane, FP32 Möller–Trumbore, and a selective BVH. On the one tested
 RTX 3050 Ti, it was faster than every Tensor path in the local selective-BVH
 Grid quick sweep at the default maximum leaf size of 16.
@@ -23,13 +23,9 @@ the no-Möller modes crossed same-tree CUDA32 at `1.06–1.30x` in deliberately
 coarse High/leaf-256 work. They missed 2–3 of 970 reference hits and chose
 3–5 wrong primitives. They are useful approximate results, not exact wins.
 
-In the same current run, the exact validated hybrid crossed same-tree CUDA32
+In that archived run, the exact validated hybrid crossed same-tree CUDA32
 in three of six coarse-leaf comparisons. On the highest triangle tier it was
 still about `9.3x`/`3.3x` slower than the fastest selective CUDA32 settings.
-
-The newer no-Möller variants are useful approximate experiments, but they can
-choose the wrong primitive or depth. Their errors are not guaranteed to remain
-at silhouettes or shared edges.
 
 ## Findings at a glance
 
@@ -42,9 +38,10 @@ at silhouettes or shared edges.
 - **The validated hybrid is empirical.** Its FP16-input WMMA stage is only a
   broad filter and FP32 Möller owns admitted hits. Recorded tests agreed with
   the reference, but there is no formal conservative FP16 bound.
-- **Removing Möller exposes real error.** The current archived suite found
+- **Removing Möller exposes real error.** The archived suite found
   mostly matching hit masks but wrong closest primitives and occasionally
   large relative depth error.
+
 See [Findings and evidence](docs/RESULTS.md) for the complete measured result
 and its scope.
 
@@ -77,11 +74,11 @@ ctest --preset core
 The default procedural Grid scene is generated in source and needs no
 downloaded model, Blender, or TinyBVH.
 
-On a desired single B200,
+On a supported single-GPU host,
 `./tools/run_cloud_gpu.sh --profile archive` builds for the native CUDA
 architecture, runs the primary and secondary Grid leaf sweeps, and creates a
 checksummed result tarball. [Running on Lambda Cloud](docs/LAMBDA_CLOUD.md)
-documents the API-only launch, retrieval, verification, and termination path.
+documents the Lambda-specific API lifecycle and SSH execution/retrieval.
 The repository retains complete paid Lambda
 [A10](results/lambda-a10-2026-07-21/README.md),
 [A100](results/lambda-a100-2026-07-21/README.md), and
@@ -120,7 +117,7 @@ Run the approximate no-Möller variants:
   --quick --scene Grid --variant e0e1e2
 ```
 
-Test the candidate-density hypothesis:
+Reproduce the candidate-density sweep:
 
 ```sh
 ./build/core/tensor-wide-bvh-bench \
@@ -185,15 +182,15 @@ The complete derivation and numerical policy are in
 ## Evidence policy
 
 The published RTX 3050 Ti and paid Lambda A10/A100/H100 bundles cover the
-current CUDA32, validated WMMA, `uvt-depthsorted`, and `e0e1e2` backends. They
+tested CUDA32, validated WMMA, `uvt-depthsorted`, and `e0e1e2` backends. They
 include raw samples, complete transcripts, environment capture, source hashes,
 and all correctness counters. The B200 record is availability evidence only,
-not a benchmark. The [results policy](results/README.md) defines what to retain
-when adding another GPU or workload.
+not a benchmark. The [results policy](results/README.md) records the evidence
+contract followed by the retained bundles.
 
 ## Scope and limitations
 
-This repository does **not** currently provide:
+This repository does **not** provide:
 
 - an RT Core, OptiX, Vulkan RT, or DXR comparison;
 - a compressed production GPU traversal implementation;
@@ -215,10 +212,10 @@ TinyBVH's production traversal kernel.
   optional builder bridge.
 - [`src/live_viewer.cu`](src/live_viewer.cu) and
   [`src/viewer.cpp`](src/viewer.cpp) — optional live and PPM comparison viewers;
-  they expose the validated path, not the new approximate variants.
+  they expose the validated path, not the approximate variants.
 - [`prototype/`](prototype) — minimal tile implementation and algebra tests.
 - [`docs/METHOD.md`](docs/METHOD.md) — detailed algorithm and numerical policy.
-- [`docs/RESULTS.md`](docs/RESULTS.md) — current findings and evidence status.
+- [`docs/RESULTS.md`](docs/RESULTS.md) — archived findings and evidence status.
 - [`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md) — complete commands and
   measurement contract.
 - [`docs/LAMBDA_CLOUD.md`](docs/LAMBDA_CLOUD.md) — scripted Lambda Cloud GPU

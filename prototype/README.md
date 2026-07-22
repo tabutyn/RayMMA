@@ -1,7 +1,7 @@
 # Tensor-Core ray/triangle intersection prototype
 
-This package is a testable first implementation of the separated algebra from
-`ALGEBRA.md`. It uses the CUDA WMMA calls requested in the design:
+This package is a minimal testable implementation of the separated algebra from
+`ALGEBRA.md`. It directly uses these CUDA WMMA calls:
 
 ```cpp
 wmma::load_matrix_sync(...);
@@ -65,16 +65,16 @@ The executable constructs a deterministic `4 triangles x 16 rays` tile. It:
 ## Important prototype limitations
 
 - This demonstrates the math and tile layout, not a complete BVH traversal.
-- Host-side packing is intentionally explicit. Production code should produce
-  tiles on the GPU or consume prepacked triangle records.
+- Host-side packing is intentionally explicit rather than producing tiles on
+  the GPU or consuming prepacked triangle records.
 - The dense tile is economical only when traversal supplies enough useful
   ray/triangle candidates. Empty packet lanes directly waste MMA work.
-- FP16 coordinate range is the main correctness risk. Convert geometry and ray
-  origins to a local BVH-leaf coordinate frame before production benchmarking.
-- Boundary and nearly parallel cases may require an FP32 fallback for watertight
-  behavior.
-- Benchmark against an optimized CUDA intersection kernel and the target GPU's
-  RT hardware. A successful arithmetic test does not establish a speedup.
+- FP16 coordinate range is the main correctness risk. The integrated benchmark
+  mitigates it with local BVH-leaf coordinate frames; the prototype does not.
+- Boundary and nearly parallel cases are not watertight without an FP32
+  fallback.
+- This arithmetic prototype is not performance evidence against an optimized
+  CUDA intersection kernel or the target GPU's RT hardware.
 
 ## Where the full experiment lives
 

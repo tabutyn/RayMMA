@@ -1,9 +1,9 @@
 # Contributing to RayMMA
 
-RayMMA is a correctness-first performance experiment. Contributions are
-welcome when they preserve the controls needed to interpret a result.
+RayMMA is a completed correctness-first research artifact. The requirements
+below apply to independent corrections and derivative work.
 
-## Before opening a pull request
+## Evidence requirements for changes
 
 1. Build a Release configuration and run the CPU algebra, GPU WMMA, and Grid
    smoke tests.
@@ -31,8 +31,8 @@ cmake --build --preset core --parallel
 ctest --preset core
 ```
 
-Please keep claims narrow. A result on one GPU and one ray distribution should
-be described as that result, not as a general architectural conclusion.
+Claims must remain narrow. A result on one GPU and one ray distribution is a
+bounded observation, not a general architectural conclusion.
 Use “FP16-input, FP32-accumulated WMMA” rather than “FP16 Tensor result,” and
 distinguish the `validated` hybrid from the no-Möller Tensor-owned variants.
 

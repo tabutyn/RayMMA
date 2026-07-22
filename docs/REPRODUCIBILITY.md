@@ -200,7 +200,7 @@ work removed by Tensor-owned depth clipping, so the output labels it
 ## Correctness contract
 
 For `validated`, every full image from CUDA32 and WMMA must match the
-CUDA-packet16 hit/miss mask, primitive ID, and depth tolerance. The release
+CUDA-packet16 hit/miss mask, primitive ID, and depth tolerance. The test
 harness also brute-forces up to 256 deterministic, 16-by-16 image-stratified
 rays selected by original pixel coordinate in both coherent and packet-shuffled order. A
 brute-force primitive mismatch is a failure. Equal-depth or coplanar
@@ -217,10 +217,10 @@ Save the console counters with every timing run.
 
 The suite includes odd 5/6/7-triangle leaf-layout cases, a far-camera
 tiny-triangle FP16-range case, a farther-first nearest-hit case, and a
-separate-leaf fixture that verifies world depth clips a later BVH leaf. It is
-not a proof of numerical safety. Add broader near-edge, near-parallel,
-large-coordinate, tiny-triangle, and degenerate generators before making a
-formal robustness claim.
+separate-leaf fixture that verifies world depth clips a later BVH leaf. The
+suite is not a proof of numerical safety and does not comprehensively cover
+near-edge, near-parallel, large-coordinate, tiny-triangle, or degenerate
+cases.
 
 ## Evidence to save with every result
 
@@ -252,6 +252,6 @@ column to distinguish algorithms. Keep the console output and environment
 file beside it; the CSV alone does not record the command, commit, scene hash,
 or correctness counters.
 
-The current RTX 3050 Ti bundle under `results/` includes raw samples for
+The archived RTX 3050 Ti bundle under `results/` includes raw samples for
 CUDA32, validated WMMA, and both no-Möller variants on the hash-pinned CC0
 Coastal Cliff model. See [`RESULTS.md`](RESULTS.md) for the measured result.

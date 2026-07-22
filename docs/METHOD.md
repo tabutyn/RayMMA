@@ -115,10 +115,10 @@ In this mode, WMMA never owns the final hit decision:
 6. FP32 depth determines the closest hit.
 
 The envelope produced zero Tensor-versus-matched-CUDA disagreements in the
-recorded suite. It is not backed by a formal FP16 error bound, so it should be
-called empirically validated, not mathematically conservative. In source and
-output, “exact tests” means the FP32 validation path; it does not mean exact
-real arithmetic or a watertight predicate.
+recorded suite. It is not backed by a formal FP16 error bound and is therefore
+described as empirically validated, not mathematically conservative. In source
+and output, “exact tests” means the FP32 validation path; it does not mean
+exact real arithmetic or a watertight predicate.
 
 ## Experimental Tensor-owned policies
 
@@ -225,4 +225,4 @@ Tensor-owned clipping.
 ## Interpretation
 
 Algorithm description and measured evidence are kept separate. See
-[Findings and evidence](RESULTS.md) for the current measurements and scope.
+[Findings and evidence](RESULTS.md) for the archived measurements and scope.

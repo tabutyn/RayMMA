@@ -1,7 +1,7 @@
 # Related work and novelty boundary
 
-RayMMA should not currently claim that Tensor-Core ray/triangle intersection
-is novel. The public search and implementation review performed for this
+RayMMA does not claim that Tensor-Core ray/triangle intersection is novel.
+The public search and implementation review performed for this
 artifact were sufficient to find adjacent foundations, not to establish an
 exhaustive novelty or patent opinion.
 
@@ -23,33 +23,23 @@ The method builds on well-established ideas:
   than ordinary floating-point predicates:
   [Watertight Ray/Triangle Intersection](https://jcgt.org/published/0002/01/05/).
 
-The potentially distinctive artifact contribution is the particular
-four-triangle by sixteen-ray coefficient layout, its integration with
-candidate-rich BVH leaves, and the measured crossover with FP32 revalidation.
-That is a research hypothesis, not a novelty conclusion.
+The artifact documents a four-triangle by sixteen-ray coefficient layout, its
+integration with candidate-rich BVH leaves, and its measured crossover with
+FP32 revalidation. No novelty claim is made.
 
 ## Baselines not included
 
-RayMMA compares CUDA software intersection strategies. It does not currently
+RayMMA compares CUDA software intersection strategies. It does not
 benchmark NVIDIA RT Cores, OptiX, Vulkan ray tracing, DirectX Raytracing, or a
 compressed production GPU traversal kernel. TinyBVH is used only as an
 optional established hierarchy builder; its output is converted to RayMMA's
 uncompressed BVH8 traversal format.
 
-The repository still lacks a raw all-pairs `N rays × M triangles` sweep. Its
-RTX 3050 Ti plus paid Lambda A10, A100, and H100 measurements now span Ampere
-and Hopper, but one small procedural workload is not enough for a broad
-architectural conclusion. A 12-hour Lambda B200 availability watch found no
-capacity, so Blackwell remains unmeasured.
+The repository does not include a raw all-pairs `N rays × M triangles` sweep.
+Measurements cover Ampere and Hopper, but the single procedural cloud workload
+does not support a broad architectural conclusion.
 
-Before a paper or patent claim:
+## Novelty and IP scope
 
-1. conduct a structured literature and patent search for matrix-form,
-   Plücker-form, packet, and Tensor-Core ray/primitive intersection;
-2. compare equations and data layouts claim-by-claim, not only titles;
-3. retain the new CUDA32, TinyBVH, and true-secondary controls across
-   standard scenes and larger sample counts;
-4. test additional GPU generations and workloads, including B200 when it is
-   available; and
-5. obtain qualified IP advice if patent protection matters before public
-   disclosure.
+The references above are not an exhaustive literature or patent search.
+RayMMA makes no patent-novelty conclusion and is not legal advice.

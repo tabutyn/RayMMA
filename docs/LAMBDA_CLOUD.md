@@ -15,9 +15,9 @@ official REST API:
 8. terminate through the API and poll for confirmation, including after most
    failures or `Ctrl-C`.
 
-Lambda currently publishes a REST API and an OpenAPI specification, but not a
-dedicated official CLI or language SDK. The Python helper uses only the
-standard library plus local OpenSSH commands.
+At the time of the July 2026 runs, Lambda published a REST API and an OpenAPI
+specification, but not a dedicated official CLI or language SDK. The Python
+helper uses only the standard library plus local OpenSSH commands.
 
 ## One unavoidable account step
 
@@ -106,9 +106,12 @@ For a bounded unattended B200 availability watch, keep the credential in a
 permission-0600 file outside the repository and run:
 
 ```sh
-LAMBDA_API_KEY_FILE="$HOME/RayMMA.txt" \
+LAMBDA_API_KEY_FILE="/secure/path/lambda-api-key" \
   ./tools/watch_lambda_b200.sh --hours 12
 ```
+
+Replace `/secure/path/lambda-api-key` with the local path to the protected key
+file.
 
 The watcher uses one local lock, randomized three-to-seven-minute intervals,
 the B200 type only, and a hard $7.00/hour live-price ceiling. If capacity

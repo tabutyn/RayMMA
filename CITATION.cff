@@ -12,6 +12,7 @@ authors:
     given-names: Thomas
 license: MIT
 version: 0.1.0
+date-released: 2026-07-22
 repository-code: "https://github.com/tabutyn/RayMMA"
 keywords:
   - CUDA
